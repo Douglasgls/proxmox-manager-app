@@ -109,7 +109,7 @@ export const Containers: React.FC = () => {
     <div className="space-y-6">
       <PageHeader
         title="Gerenciamento de Containers"
-        description="Listagem de LXC e VMs no Cluster Proxmox."
+        description="Listagem de LXC no Cluster Proxmox."
         actions={<Button size="sm">Novo Container</Button>}
       />
 

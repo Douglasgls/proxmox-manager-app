@@ -3,8 +3,8 @@ export type UserRole = 'admin' | 'user' | 'readonly';
 export interface User {
   id: string;
   email: string;
-  name: string;
-  role: UserRole;
+  username: string;
+  is_active: boolean;
   createdAt: string;
 }
 

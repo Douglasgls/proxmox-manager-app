@@ -27,7 +27,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   // Recupera a URL do WebSocket do .env
-  const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
+  const wsUrl = import.meta.env.VITE_WS_URL;
 
   // Cria o ConnectionManager e os Sockets especializados de forma memorizada
   const { manager, dashboardSocket, jobSocket, containerSocket } = useMemo(() => {

@@ -45,24 +45,27 @@ export interface ProxmoxNode {
 }
 
 export interface StorageResource {
-  storage: string;
-  node: string;
-  type: string; // dir, lvm, nfs, zfs, etc.
-  shared: boolean;
+  name: string;
+  storage_type: string;
   active: boolean;
-  used: number;  // bytes
-  total: number; // bytes
+  enabled: boolean;
+  shared: boolean;
+  content_types: string[];
+  total_bytes: number;
 }
 
 export interface NetworkInterface {
-  iface: string;
-  node: string;
-  type: string; // eth, bridge, bond, vlan
-  active: boolean;
-  address?: string;
-  netmask?: string;
-  gateway?: string;
-  ports?: string;
+  name: string,
+  interface_type: string,
+  active: true,
+  address: string,
+  netmask: string,
+  gateway: string
+}
+
+export interface NetworksResponse {
+  bridges: NetworkInterface[];
+  interfaces: NetworkInterface[];
 }
 
 export interface InventorySummary {

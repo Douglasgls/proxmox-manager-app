@@ -73,9 +73,9 @@ export const Settings: React.FC = () => {
               <p className="text-xs font-mono text-muted-foreground mt-1 truncate">
                 API URL: {import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'}
               </p>
-              {/* <p className="text-xs font-mono text-muted-foreground truncate">
+              <p className="text-xs font-mono text-muted-foreground truncate">
                 WS URL: {import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws'}
-              </p> */}
+              </p>
             </div>
             <div className="text-xs text-muted-foreground">
               Versão do Frontend: <span className="font-semibold text-foreground">0.1.0-alpha (TCC)</span>

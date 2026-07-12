@@ -1,6 +1,6 @@
 import { apiClient } from '../client/ApiClient';
 import type { ApiResponse } from '@/types/api';
-import type { HostInventory, HostMetrics, ProxmoxNode, StorageResource, NetworkInterface } from '@/types/inventory';
+import type { HostInventory, HostMetrics, ProxmoxNode, StorageResource, NetworksResponse } from '@/types/inventory';
 
 export const inventoryApi = {
   getHost: async (): Promise<HostInventory> => {
@@ -19,15 +19,15 @@ export const inventoryApi = {
     return response.data;
   },
 
-  storages: async (node?: string): Promise<ApiResponse<StorageResource[]>> => {
-    const response = await apiClient.get<ApiResponse<StorageResource[]>>('/storages', {
+  getStorages: async (node?: string): Promise<StorageResource[]> => {
+    const response = await apiClient.get<StorageResource[]>('/monitor/storage/inventory', {
       params: { node },
     });
     return response.data;
   },
 
-  networks: async (node: string): Promise<ApiResponse<NetworkInterface[]>> => {
-    const response = await apiClient.get<ApiResponse<NetworkInterface[]>>(`/nodes/${node}/network`);
+  getNetworks: async (): Promise<NetworksResponse> => {
+    const response = await apiClient.get<NetworksResponse>("/monitor/network/inventory");
     return response.data;
   },
 };

@@ -95,7 +95,7 @@ apiClient.interceptors.response.use(
 
     try {
       // Faz requisição para atualizar o token. Nota: usamos a instância padrão do axios para não acionar interceptores
-      const response = await axios.post(`${BASE_URL}/auth/refresh`, {
+      const response = await axios.post(`${BASE_URL}auth/refresh`, {
         refreshToken,
       });
 
