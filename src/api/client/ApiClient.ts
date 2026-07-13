@@ -96,19 +96,28 @@ apiClient.interceptors.response.use(
     try {
       // Faz requisição para atualizar o token. Nota: usamos a instância padrão do axios para não acionar interceptores
       const response = await axios.post(`${BASE_URL}auth/refresh`, {
-        refreshToken,
+        refresh_token: refreshToken,
       });
 
-      const { token: newAccessToken, refreshToken: newRefreshToken, expiresIn, tokenType } = response.data.data;
+      const {
+        access_token,
+        refresh_token,
+        expires_in,
+        token_type,
+      } = response.data;
 
-      // Atualiza a store global
-      setAuth(newAccessToken, newRefreshToken, expiresIn, tokenType);
-
+      setAuth(
+        access_token,
+        refresh_token,
+        expires_in,
+        token_type
+      );
+      
       // Reprocessa a fila com o novo token
-      processQueue(null, newAccessToken);
+      processQueue(null, access_token);
 
       // Atualiza o cabeçalho da requisição atual e a re-executa
-      originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+      originalRequest.headers.Authorization = `Bearer ${access_token}`;
       return apiClient(originalRequest);
     } catch (refreshError) {
       // Se falhar o refresh token, limpa a sessão e redireciona para o login

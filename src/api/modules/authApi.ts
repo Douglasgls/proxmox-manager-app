@@ -10,8 +10,8 @@ export interface LoginResponseData {
 }
 
 export const authApi = {
-  login: async (credentials: { email: string; password?: string }): Promise<ApiResponse<LoginResponseData>> => {
-    const response = await apiClient.post<ApiResponse<LoginResponseData>>('/auth/login', credentials);
+  login: async (credentials: { email: string; password?: string }): Promise<LoginResponseData> => {
+    const response = await apiClient.post<LoginResponseData>('/auth/login', credentials);
     return response.data;
   },
 
@@ -26,8 +26,8 @@ export const authApi = {
   },
 
   // TODO: Rever porque não funciona ainda
-  refreshToken: async (access_token: string): Promise<ApiResponse<LoginResponseData>> => {
-    const response = await apiClient.post<ApiResponse<LoginResponseData>>('/auth/refresh', { access_token });
+  refreshToken: async (refresh_token: string): Promise<LoginResponseData> => {
+    const response = await apiClient.post<LoginResponseData>('/auth/refresh', { refresh_token });
     return response.data;
   },
 };
