@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
 import PublicRoute from './PublicRoute';
 
@@ -10,10 +10,16 @@ import AuthLayout from '@/components/layout/AuthLayout';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import Containers from '@/pages/Containers';
+import ContainerDetails from '@/features/containers/pages/ContainerDetailsPage';
 import Jobs from '@/pages/Jobs';
 import Monitoring from '@/pages/Monitoring';
 import Inventory from '@/pages/Inventory';
 import Settings from '@/pages/Settings';
+
+const ContainerRedirect: React.FC = () => {
+  const { containerId } = useParams<{ containerId: string }>();
+  return <Navigate to={`/app/containers/${containerId}`} replace />;
+};
 
 export const router = createBrowserRouter([
   // Rotas Públicas (Protegidas contra usuários já autenticados)
@@ -53,6 +59,10 @@ export const router = createBrowserRouter([
             element: <Containers />,
           },
           {
+            path: 'containers/:containerId',
+            element: <ContainerDetails />,
+          },
+          {
             path: 'jobs',
             element: <Jobs />,
           },
@@ -71,6 +81,12 @@ export const router = createBrowserRouter([
         ],
       },
     ],
+  },
+
+  // Redirect for old path
+  {
+    path: '/containers/:containerId',
+    element: <ContainerRedirect />,
   },
 
   // Redirecionamento da raiz do site

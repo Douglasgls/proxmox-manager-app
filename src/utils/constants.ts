@@ -22,6 +22,8 @@ export const CONTAINER_STATUS_COLORS = {
   running: 'text-green-500 bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900',
   stopped: 'text-gray-500 bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800',
   paused: 'text-yellow-500 bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-900',
+  locked: 'text-orange-500 bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900',
+  suspended: 'text-yellow-500 bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-900',
   unknown: 'text-red-500 bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900',
 } as const;
 

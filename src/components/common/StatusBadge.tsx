@@ -30,6 +30,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
       running: 'Executando',
       stopped: 'Parado',
       paused: 'Pausado',
+      locked: 'Bloqueado',
+      suspended: 'Suspenso',
       unknown: 'Desconhecido',
     };
     label = labels[normalizedStatus] || status;

@@ -8,6 +8,7 @@ import { inventoryApi } from '@/api/modules/inventoryApi';
 import { formatBytes } from '@/utils/bytes';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useDashboardStore } from '@/stores/dashboardStore';
+import { useDashboardMetrics } from '@/hooks/websocket/useDashboardMetrics';
 import {
   Activity, Clock,
   ArrowDownToLine, ArrowUpFromLine, 
@@ -53,20 +54,14 @@ const MetricBar: React.FC<{ label: string; percent: number; valueText: string; c
 };
 
 export const Dashboard: React.FC = () => {
-  const { metrics, connected } = useDashboard();
+  const { metrics } = useDashboard();
+  const { data: wsMetrics, loading: isMetricsPending } = useDashboardMetrics();
 
   const { data: host, isPending: isHostPending, isError: isHostError, refetch: refetchHost } = useQuery({
     queryKey: ['host', 'inventory'],
     queryFn: inventoryApi.getHost,
     staleTime: Infinity, 
   });
-
-  const { data: apiMetrics, isPending: isMetricsPending, isError: isMetricsError, refetch: refetchMetrics } = useQuery({
-    queryKey: ['host', 'metrics'],
-    queryFn: inventoryApi.getHostMetrics,
-    refetchInterval: connected ? false : 5000,
-  });
-
 
   const { data: storages } = useQuery({
     queryKey: ['storages'],
@@ -79,20 +74,20 @@ export const Dashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    if (apiMetrics) {
-      useDashboardStore.getState().updateMetrics(apiMetrics);
+    if (wsMetrics) {
+      useDashboardStore.getState().updateMetrics(wsMetrics);
     }
-  }, [apiMetrics]);
+  }, [wsMetrics]);
 
   const isPending = isHostPending || (isMetricsPending && !metrics.lastUpdate);
-  const isError = isHostError || (isMetricsError && !metrics.lastUpdate);
+  const isError = isHostError;
 
   if (isPending) {
     return <Loading message="Carregando dados do host..." />;
   }
 
   if (isError || !host || !metrics.lastUpdate) {
-    return <Error title="Não foi possível carregar os dados" onRetry={() => { refetchHost(); refetchMetrics(); }} />;
+    return <Error title="Não foi possível carregar os dados" onRetry={() => { refetchHost(); }} />;
   }
 
   const ramPercent = host.memory_total_bytes > 0 ? (metrics.memory_used_bytes / host.memory_total_bytes) * 100 : 0;
