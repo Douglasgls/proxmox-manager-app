@@ -11,6 +11,7 @@ import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import Containers from '@/pages/Containers';
 import ContainerDetails from '@/features/containers/pages/ContainerDetailsPage';
+import ContainerConsole from '@/pages/containers/console';
 import Jobs from '@/pages/Jobs';
 import Monitoring from '@/pages/Monitoring';
 import Inventory from '@/pages/Inventory';
@@ -61,6 +62,10 @@ export const router = createBrowserRouter([
           {
             path: 'containers/:containerId',
             element: <ContainerDetails />,
+          },
+          {
+            path: 'containers/:containerId/console',
+            element: <ContainerConsole />,
           },
           {
             path: 'jobs',

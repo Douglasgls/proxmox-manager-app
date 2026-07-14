@@ -1,15 +1,18 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import PageHeader from '@/components/common/PageHeader';
 import Loading from '@/components/common/Loading';
 import Error from '@/components/common/Error';
 import EmptyState from '@/components/common/EmptyState';
 import { Button } from '@/components/ui/button';
 import { ContainerTable, type ContainerTableRow } from '../components/ContainerTable';
+import { CreateContainerModal } from '../components/CreateContainerModal';
 import { useContainerInventory } from '../hooks';
 import { useContainersMetrics } from '@/hooks/websocket/useContainersMetrics';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Plus } from 'lucide-react';
 
 export const ContainersPage: React.FC = () => {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
   const {
     data: inventoryData,
     isPending: isInventoryPending,
@@ -29,6 +32,11 @@ export const ContainersPage: React.FC = () => {
 
   // Manual refresh helper
   const handleRefresh = () => {
+    refetchInventory();
+  };
+
+  const handleContainerCreated = () => {
+    // Refetch inventory to show the newly created container
     refetchInventory();
   };
 
@@ -84,7 +92,14 @@ export const ContainersPage: React.FC = () => {
               <RefreshCw className="size-4" />
               Recarregar
             </Button>
-            <Button size="sm">Novo Container</Button>
+            <Button
+              size="sm"
+              className="gap-2"
+              onClick={() => setIsCreateModalOpen(true)}
+            >
+              <Plus className="size-4" />
+              Novo Container
+            </Button>
           </div>
         }
       />
@@ -98,6 +113,13 @@ export const ContainersPage: React.FC = () => {
       ) : (
         <ContainerTable data={mergedContainers} isLoading={isLoading} />
       )}
+
+      {/* Modal de criação de container */}
+      <CreateContainerModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onContainerCreated={handleContainerCreated}
+      />
     </div>
   );
 };

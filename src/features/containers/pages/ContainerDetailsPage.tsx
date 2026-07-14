@@ -21,7 +21,7 @@ import {
   ArrowLeft, Cpu, HardDrive, Database, Activity,
   ArrowDownToLine, ArrowUpFromLine, Binary, Clock,
   RefreshCw, Info, FileInput, FileOutput,
-  Loader2
+  Loader2, Globe
 } from 'lucide-react';
 
 export const ContainerDetailsPage: React.FC = () => {
@@ -141,9 +141,17 @@ export const ContainerDetailsPage: React.FC = () => {
             {isRestarting && <Loader2 className="size-4 animate-spin text-primary" />}
             Restart
           </Button>
-          <Button variant="outline" size="sm" disabled={!isRunning}>
-            Console
-          </Button>
+          {!isRunning || isLocked || isAnyActionPending ? (
+            <Button variant="outline" size="sm" disabled>
+              Console
+            </Button>
+          ) : (
+            <Link to={`/app/containers/${inventory?.id}/console`}>
+              <Button variant="outline" size="sm">
+                Console
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -201,7 +209,7 @@ export const ContainerDetailsPage: React.FC = () => {
                 {metrics ? formatUptime(metrics.uptime_seconds) : '0s'}
               </span>
             </div>
-            <div className="flex justify-between py-2">
+            <div className="flex justify-between py-2 border-b border-border/50">
               <span className="text-sm text-muted-foreground">Bloqueado (Lock)</span>
               <span className="text-sm font-semibold">
                 {isLocked ? (
@@ -209,6 +217,13 @@ export const ContainerDetailsPage: React.FC = () => {
                 ) : (
                   'Não'
                 )}
+              </span>
+            </div>
+            <div className="flex justify-between py-2">
+              <span className="text-sm text-muted-foreground">Endereço IP</span>
+              <span className="text-sm font-semibold flex items-center gap-1.5">
+                <Globe className="size-3.5 text-muted-foreground" />
+                {inventory.ip_address || '-'}
               </span>
             </div>
           </CardContent>
@@ -309,7 +324,8 @@ export const ContainerDetailsPage: React.FC = () => {
               />
             </CardContent>
           </Card>
-
+          
+          {/* TODO: LEMBRAR DE REMOVER ESSE CARD OU IMPLEMTNAR UMA CHECAGEM DE FATO */}
           {/* Status Monitor Card */}
           <Card className="border-border shadow-sm">
             <CardHeader className="pb-2">

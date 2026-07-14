@@ -181,6 +181,8 @@ export class ConnectionManager {
 
     if (message.channel) {
       channel = message.channel;
+    } else if (message.job_id) {
+      channel = `jobs.${message.job_id}`;
     } else if (message.event) {
       // Determine channel from event name (e.g. "containers.100.metrics.updated" -> "containers.100.metrics")
       if (message.event.endsWith('.updated')) {

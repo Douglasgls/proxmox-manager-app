@@ -45,6 +45,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
       done: 'Concluído',
       failed: 'Falhou',
       stopped: 'Interrompido',
+      pending: 'Pendente',
+      completed: 'Concluído',
     };
     label = labels[normalizedStatus] || status;
   }

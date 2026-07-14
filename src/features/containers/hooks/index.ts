@@ -61,3 +61,10 @@ export const useRestartContainer = () => {
     },
   });
 };
+
+// ─── Creation & Job Tracking Hooks ──────────────────────────────────────────
+export { useCreateContainer } from './useCreateContainer';
+export { useJobChannel } from './useJobChannel';
+export { useTemplates } from './useTemplates';
+export { useBridges } from './useBridges';
+

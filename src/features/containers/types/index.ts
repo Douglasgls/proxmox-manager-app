@@ -8,6 +8,7 @@ export interface ContainerInventory {
   cpu_cores: number;
   memory_total_bytes: number;
   disk_total_bytes: number;
+  ip_address?: string | null;
 }
 
 export interface ContainerMetrics {
@@ -43,4 +44,71 @@ export interface ContainerActionResponse {
   success: boolean;
   message: string;
   status: string;
+}
+
+// ─── Container Creation Types ───────────────────────────────────────────────
+
+export type IpMode = 'dhcp' | 'static';
+
+export interface CreateContainerDTO {
+  name: string;
+  password: string;
+  cpu: number;
+  memory_mb: number;
+  disk_gb: number;
+  image_name: string;
+  bridge: string;
+  ip_mode: IpMode;
+  ip_address: string | null;
+  cidr: string | null;
+  gateway: string | null;
+  firewall: boolean;
+  mtu: number | null;
+  vlan: number | null;
+  mac_address: string | null;
+  components: string[];
+}
+
+export interface JobCreatedResponse {
+  job_id: string;
+}
+
+export type ContainerJobStatusType = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+
+export interface ContainerJobStatus {
+  event: string;
+  job_id: string;
+  type: string;
+  status: ContainerJobStatusType;
+  progress: number;
+  current_step: string | null;
+  current_component: string | null;
+  container_id: number | null;
+  target_container: string | null;
+  output: string | null;
+  error: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  created_at: string | null;
+}
+
+export interface TemplateImage {
+  name: string;
+  filename: string;
+  distribution: string;
+  version: string;
+  architecture: string;
+  description: string | null;
+  storage: string;
+  downloaded: boolean;
+  size: number;
+  source: string;
+  volume_id: string;
+}
+
+export interface AvailableComponent {
+  id: string;
+  name: string;
+  description: string;
+  icon: string; // lucide icon name
 }

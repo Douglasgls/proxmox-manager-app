@@ -19,6 +19,7 @@ export const containerMonitoringApi = {
         return {
           ...container,
           id: matchingContainer ? matchingContainer.id : '',
+          ip_address: matchingContainer ? matchingContainer.ip_address : null,
         };
       });
     }
@@ -53,9 +54,11 @@ export const containerMonitoringApi = {
   getInventoryById: async (id: number | string): Promise<ContainerInventory> => {
     let numericId = id;
     let uuid = '';
+    let dbContainerData: any = null;
     if (typeof id === 'string' && id.includes('-')) {
       uuid = id;
       const dbContainerRes = await apiClient.get<any>(`/containers/${id}`);
+      dbContainerData = dbContainerRes.data;
       numericId = dbContainerRes.data.container_number;
     } else {
       numericId = typeof id === 'string' ? parseInt(id, 10) : id;
@@ -63,12 +66,14 @@ export const containerMonitoringApi = {
       const dbContainer = dbContainersRes.data.find(c => c.container_number === numericId);
       if (dbContainer) {
         uuid = dbContainer.id;
+        dbContainerData = dbContainer;
       }
     }
     const response = await apiClient.get<ContainerInventory>(`/monitor/containers/${numericId}/inventory`);
     return {
       ...response.data,
       id: uuid,
+      ip_address: dbContainerData ? dbContainerData.ip_address : null,
     };
   },
 
