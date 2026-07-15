@@ -4,7 +4,8 @@ import {
   useContainerInventoryById,
   useStartContainer,
   useStopContainer,
-  useRestartContainer
+  useRestartContainer,
+  useDeleteContainer
 } from '../hooks';
 import { useContainerMetrics } from '@/hooks/websocket/useContainerMetrics';
 import PageHeader from '@/components/common/PageHeader';
@@ -43,6 +44,7 @@ export const ContainerDetailsPage: React.FC = () => {
   const startMutation = useStartContainer();
   const stopMutation = useStopContainer();
   const restartMutation = useRestartContainer();
+  const deleteMutation = useDeleteContainer();
 
   const isLoading = isInventoryPending || (isMetricsPending && !metrics);
   const isError = isInventoryError;
@@ -51,6 +53,7 @@ export const ContainerDetailsPage: React.FC = () => {
   const isStopping = stopMutation.isPending && stopMutation.variables === inventory?.id;
   const isRestarting = restartMutation.isPending && restartMutation.variables === inventory?.id;
   const isAnyActionPending = isStarting || isStopping || isRestarting;
+  const isDeleting = deleteMutation.isPending && deleteMutation.variables === inventory?.id;
 
   const handleRefresh = () => {
     refetchInventory();
@@ -141,6 +144,16 @@ export const ContainerDetailsPage: React.FC = () => {
             {isRestarting && <Loader2 className="size-4 animate-spin text-primary" />}
             Restart
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isRunning || isLocked || isAnyActionPending}
+            onClick={() => deleteMutation.mutate(inventory?.id || '')}
+            className="text-red-500 hover:text-red-600 gap-1.5"
+          >
+            {isDeleting && <Loader2 className="size-4 animate-spin text-red-500" />}
+            Delete
+          </Button>
           {!isRunning || isLocked || isAnyActionPending ? (
             <Button variant="outline" size="sm" disabled>
               Console
@@ -169,7 +182,7 @@ export const ContainerDetailsPage: React.FC = () => {
 
       {/* Grid containing Core Info & Resource Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
+
         {/* Core Info Card */}
         <Card className="md:col-span-1 border-border shadow-sm">
           <CardHeader>
@@ -231,7 +244,7 @@ export const ContainerDetailsPage: React.FC = () => {
 
         {/* Resource Usage Grid */}
         <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-          
+
           {/* CPU Usage Card */}
           <Card className="border-border shadow-sm">
             <CardHeader className="pb-2">
@@ -324,7 +337,7 @@ export const ContainerDetailsPage: React.FC = () => {
               />
             </CardContent>
           </Card>
-          
+
           {/* TODO: LEMBRAR DE REMOVER ESSE CARD OU IMPLEMTNAR UMA CHECAGEM DE FATO */}
           {/* Status Monitor Card */}
           <Card className="border-border shadow-sm">
@@ -355,7 +368,7 @@ export const ContainerDetailsPage: React.FC = () => {
 
       {/* Network & Storage I/O Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
+
         {/* Network Traffic Card */}
         <Card className="border-border shadow-sm">
           <CardHeader>

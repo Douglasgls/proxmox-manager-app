@@ -113,4 +113,9 @@ export const containerMonitoringApi = {
     const response = await apiClient.post<ContainerActionResponse>(`/containers/${id}/restart`);
     return response.data;
   },
+
+  delete: async (id: number | string): Promise<ContainerActionResponse> => {
+    const response = await apiClient.delete<ContainerActionResponse>(`/containers/${id}`);
+    return response.data;
+  },
 };

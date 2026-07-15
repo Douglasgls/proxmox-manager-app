@@ -62,7 +62,16 @@ export const useRestartContainer = () => {
   });
 };
 
-// ─── Creation & Job Tracking Hooks ──────────────────────────────────────────
+export const useDeleteContainer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => containerMonitoringApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['containers'] });
+    },
+  });
+};
+
 export { useCreateContainer } from './useCreateContainer';
 export { useJobChannel } from './useJobChannel';
 export { useTemplates } from './useTemplates';
