@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { inventoryApi } from '@/api/modules/inventoryApi';
 import { cn } from '@/lib/utils';
 import { WIZARD_STEPS, DEFAULT_CONTAINER_VALUES, AVAILABLE_COMPONENTS } from '../constants';
 import type { WizardStepId } from '../constants';
@@ -43,6 +45,29 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
   const [currentStep, setCurrentStep] = useState<WizardStepId>('basic');
   const currentStepIndex = WIZARD_STEPS.findIndex((s) => s.id === currentStep);
 
+  // Busca dados reais do host para limitar os sliders de recursos
+  const { data: hostInventory } = useQuery({
+    queryKey: ['host', 'inventory'],
+    queryFn: inventoryApi.getHost,
+    staleTime: Infinity,
+  });
+
+  const { data: hostMetrics } = useQuery({
+    queryKey: ['metrics'],
+    queryFn: inventoryApi.getHostMetrics,
+    staleTime: Infinity,
+  });
+
+  const maxCpuCores = hostInventory?.cpu_threads ?? 4;
+  const maxMemoryMb = hostInventory
+    ? Math.floor(hostInventory.memory_total_bytes / (1024 * 1024))
+    : 2048;
+
+  const maxDiskGb = hostMetrics
+    ? Math.floor(hostMetrics.disk_free_bytes / (1024 * 1024 * 1024))
+    : 500;
+
+
   // Form state
   const [name, setName] = useState(DEFAULT_CONTAINER_VALUES.name);
   const [password, setPassword] = useState('');
@@ -62,7 +87,7 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
   const [components, setComponents] = useState<string[]>(DEFAULT_CONTAINER_VALUES.components);
 
   // Validations per step
-  const isBasicValid = name.trim().length > 0 && password.length >= 6 && imageName.length > 0;
+  const isBasicValid = name.trim().length > 0 && password.length >= 5 && imageName.length > 0;
   const isResourcesValid = cpu >= 1 && memoryMb >= 128 && diskGb >= 1;
   const isNetworkValid = ipMode === 'dhcp' || (!!ipAddress && !!cidr);
 
@@ -207,7 +232,7 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 5 caracteres"
                 className={inputClasses}
               />
             </div>
@@ -258,10 +283,10 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
                 <input
                   type="number"
                   min={1}
-                  max={16}
+                  max={maxCpuCores}
                   value={cpu}
                   onChange={(e) => {
-                    const v = Math.min(16, Math.max(1, Number(e.target.value) || 1));
+                    const v = Math.min(maxCpuCores, Math.max(1, Number(e.target.value) || 1));
                     setCpu(v);
                   }}
                   className="w-16 h-7 px-2 text-sm font-semibold tabular-nums text-primary text-center rounded-md border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -270,14 +295,14 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
               <input
                 type="range"
                 min={1}
-                max={16}
+                max={maxCpuCores}
                 value={cpu}
                 onChange={(e) => setCpu(Number(e.target.value))}
                 className="w-full accent-primary h-2 cursor-pointer"
               />
               <div className="flex justify-between text-[10px] text-muted-foreground">
                 <span>1 core</span>
-                <span>16 cores</span>
+                <span>{maxCpuCores} cores</span>
               </div>
             </div>
 
@@ -292,11 +317,11 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
                   <input
                     type="number"
                     min={128}
-                    max={16384}
+                    max={maxMemoryMb}
                     step={128}
                     value={memoryMb}
                     onChange={(e) => {
-                      const v = Math.min(16384, Math.max(128, Number(e.target.value) || 128));
+                      const v = Math.min(maxMemoryMb, Math.max(128, Number(e.target.value) || 128));
                       setMemoryMb(v);
                     }}
                     className="w-20 h-7 px-2 text-sm font-semibold tabular-nums text-primary text-center rounded-md border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -309,7 +334,7 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
               <input
                 type="range"
                 min={128}
-                max={16384}
+                max={maxMemoryMb}
                 step={128}
                 value={memoryMb}
                 onChange={(e) => setMemoryMb(Number(e.target.value))}
@@ -317,7 +342,7 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
               />
               <div className="flex justify-between text-[10px] text-muted-foreground">
                 <span>128 MB</span>
-                <span>16 GB</span>
+                <span>{maxMemoryMb >= 1024 ? `${(maxMemoryMb / 1024).toFixed(1)} GB` : `${maxMemoryMb} MB`}</span>
               </div>
             </div>
 
@@ -332,10 +357,10 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
                   <input
                     type="number"
                     min={1}
-                    max={500}
+                    max={maxDiskGb}
                     value={diskGb}
                     onChange={(e) => {
-                      const v = Math.min(500, Math.max(1, Number(e.target.value) || 1));
+                      const v = Math.min(maxDiskGb, Math.max(1, Number(e.target.value) || 1));
                       setDiskGb(v);
                     }}
                     className="w-16 h-7 px-2 text-sm font-semibold tabular-nums text-primary text-center rounded-md border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -346,7 +371,7 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
               <input
                 type="range"
                 min={1}
-                max={500}
+                max={maxDiskGb}
                 step={1}
                 value={diskGb}
                 onChange={(e) => setDiskGb(Number(e.target.value))}
@@ -354,7 +379,7 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
               />
               <div className="flex justify-between text-[10px] text-muted-foreground">
                 <span>1 GB</span>
-                <span>500 GB</span>
+                <span>{maxDiskGb} GB</span>
               </div>
             </div>
           </div>

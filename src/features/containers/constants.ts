@@ -31,7 +31,7 @@ export const DEFAULT_CONTAINER_VALUES: Omit<CreateContainerDTO, 'password'> = {
   name: '',
   cpu: 1,
   memory_mb: 512,
-  disk_gb: 8,
+  disk_gb: 2,
   image_name: '',
   bridge: 'vmbr0',
   ip_mode: 'dhcp',
