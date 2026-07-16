@@ -1,5 +1,5 @@
 import { apiClient } from '@/api/client/ApiClient';
-import type { ContainerInventory, ContainerMetrics, ContainerInventoryResponse, ContainerActionResponse } from '../types/index';
+import type { ContainerInventory, ContainerMetrics, ContainerInventoryResponse, ContainerActionResponse, JobCreatedResponse } from '../types/index';
 
 export const containerMonitoringApi = {
   getInventory: async (): Promise<ContainerInventoryResponse> => {
@@ -116,6 +116,11 @@ export const containerMonitoringApi = {
 
   delete: async (id: number | string): Promise<ContainerActionResponse> => {
     const response = await apiClient.delete<ContainerActionResponse>(`/containers/${id}`);
+    return response.data;
+  },
+
+  setupTailscale: async (id: number | string): Promise<JobCreatedResponse> => {
+    const response = await apiClient.post<JobCreatedResponse>(`/containers/${id}/tailscale/setup`);
     return response.data;
   },
 };
