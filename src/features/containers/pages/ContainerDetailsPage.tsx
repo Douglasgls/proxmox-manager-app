@@ -25,7 +25,7 @@ import {
   Loader2, Globe
 } from 'lucide-react';
 
-import { EnableRemoteAccessButton } from '../components/EnableRemoteAccessButton';
+import { AccessSetupButton } from './../components/container-access/AccessSetupButton';
 
 export const ContainerDetailsPage: React.FC = () => {
   const { containerId } = useParams<{ containerId: string }>();
@@ -116,7 +116,7 @@ export const ContainerDetailsPage: React.FC = () => {
             <RefreshCw className="size-4" />
             Sincronizar
           </Button>
-          <EnableRemoteAccessButton 
+          <AccessSetupButton 
             containerId={inventory.id} 
             disabled={isLocked || isAnyActionPending} 
           />

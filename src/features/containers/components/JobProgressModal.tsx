@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { X, Box, Activity } from 'lucide-react';
 import { JobProgressTracker } from './JobProgressTracker';
@@ -32,11 +32,23 @@ export const JobProgressModal: React.FC<JobProgressModalProps> = ({
     elapsedSeconds,
   } = useJobChannel(jobId);
 
+  const onCompleteRef = useRef(onComplete);
+  const hasFiredRef = useRef(false);
+
   useEffect(() => {
-    if (isCompleted && onComplete) {
-      onComplete();
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  useEffect(() => {
+    hasFiredRef.current = false;
+  }, [jobId]);
+
+  useEffect(() => {
+    if (isCompleted && onCompleteRef.current && !hasFiredRef.current) {
+      hasFiredRef.current = true;
+      onCompleteRef.current();
     }
-  }, [isCompleted, onComplete]);
+  }, [isCompleted]);
 
   const handleClose = useCallback(() => {
     onClose();

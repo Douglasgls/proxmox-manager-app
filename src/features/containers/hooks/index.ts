@@ -76,5 +76,5 @@ export { useCreateContainer } from './useCreateContainer';
 export { useJobChannel } from './useJobChannel';
 export { useTemplates } from './useTemplates';
 export { useBridges } from './useBridges';
+export * from './useAccessTokens';
 export { useEnableRemoteAccess } from './useEnableRemoteAccess';
-
