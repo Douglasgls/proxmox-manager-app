@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useDashboardStore } from '@/stores/dashboardStore';
-import { 
-  Sun, 
-  Moon, 
-  Laptop, 
-  LogOut, 
-  User as UserIcon, 
-  Server, 
-  Clock, 
-  RefreshCw 
+import {
+  Sun,
+  Moon,
+  Laptop,
+  LogOut,
+  User as UserIcon,
+  Server,
+  Clock
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { inventoryApi } from '@/api/modules/inventoryApi';
+import { CloudConnectionCard } from '@/components/cloud/CloudConnectionCard';
 
 // Função auxiliar para formatar o Uptime
 const formatUptime = (totalSeconds: number) => {
@@ -29,20 +29,19 @@ export const Header: React.FC = () => {
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const { metrics, connected } = useDashboard();
-  const [isSyncing, setIsSyncing] = useState(false);
 
   // Busca as informações do nó (hostname)
   const { data: host } = useQuery({
     queryKey: ['host', 'inventory'],
     queryFn: inventoryApi.getHost,
-    staleTime: Infinity, // O hostname raramente muda, não precisa fazer refetch automático
+    staleTime: Infinity,
   });
 
   // Busca as métricas (uptime) inicialmente para a store global
   const { data: apiMetrics } = useQuery({
     queryKey: ['host', 'metrics'],
     queryFn: inventoryApi.getHostMetrics,
-    refetchInterval: connected ? false : 60000, // Atualiza sozinho a cada 1 minuto apenas se não conectado via WS
+    refetchInterval: connected ? false : 60000,
   });
 
   useEffect(() => {
@@ -51,29 +50,14 @@ export const Header: React.FC = () => {
     }
   }, [apiMetrics]);
 
-  const handleSync = async () => {
-    setIsSyncing(true);
-    try {
-      const data = await inventoryApi.getHostMetrics();
-      useDashboardStore.getState().updateMetrics(data);
-    } catch (err) {
-      console.error('[Header] Sync failed', err);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   return (
     <header className="flex h-16 items-center justify-between px-6 border-b border-border bg-card">
-      <div className="flex items-center gap-4 w-1/4">
-        {/* Espaço para Breadcrumb ou Título Dinâmico */}
+      <div className="flex items-center ">
         <span className="text-sm font-semibold text-muted-foreground">Plataforma</span>
       </div>
 
       {/* Seção Central - Estilo Proxmox */}
-      <div className="hidden md:flex items-center gap-4 px-4 py-1.5 rounded-md border border-border bg-muted/30 shadow-sm">
-        
-        {/* Node Name */}
+      <div className="hidden md:flex items-center justify-center gap-4 px-4 py-2 rounded-md border border-border bg-muted/30 shadow-sm">
         <div className="flex items-center gap-2" title="Nó atual">
           <Server className="size-4 text-primary" />
           <p>Node</p>
@@ -84,33 +68,18 @@ export const Header: React.FC = () => {
 
         <div className="h-4 w-px bg-border" />
 
-        {/* Uptime */}
         <div className="flex items-center gap-2" title="Tempo de atividade">
           <Clock className="size-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground tabular-nums">
             {metrics ? formatUptime(metrics.uptime_seconds) : '--'}
           </span>
         </div>
-
-        {/* <div className="h-4 w-px bg-border" /> */}
-
-        {/* Botão de Sync Melhorado */}
-        {/* <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleSync}
-          disabled={isSyncing}
-          className="h-7 px-2.5 gap-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 border border-transparent hover:border-primary/20 transition-all rounded-full"
-          title="Sincronizar dados do nó"
-        >
-          <RefreshCw className={`size-3.5 ${isSyncing ? 'animate-spin text-primary' : ''}`} />
-          <span className="text-xs font-medium uppercase tracking-wider">
-            {isSyncing ? 'Sincronizando...' : 'Sync'}
-          </span>
-        </Button> */}
       </div>
 
-      <div className="flex items-center justify-end gap-4 w-1/4">
+      <div className="flex items-center justify-end gap-3 min-w-fit">
+        {/* Card de Conexão Cloud */}
+        <CloudConnectionCard />
+
         {/* Toggle de Tema */}
         <div className="flex items-center rounded-lg border border-border bg-muted/50 p-0.5">
           <Button
@@ -149,8 +118,7 @@ export const Header: React.FC = () => {
         {user && (
           <div className="flex items-center gap-3">
             <div className="flex flex-col text-right hidden sm:flex">
-              <span className="text-sm font-semibold text-foreground">{user.name}</span>
-              <span className="text-xs text-muted-foreground uppercase">{user.role}</span>
+              <span className="text-sm font-semibold text-foreground">{user.username || user.email}</span>
             </div>
             <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
               <UserIcon className="size-4" />
