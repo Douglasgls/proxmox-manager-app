@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { AccessTokenRow } from './AccessTokenRow';
 import type { AccessToken } from '@/api/modules/accessTokenApi';
 import Loading from '@/components/common/Loading';
@@ -10,6 +10,32 @@ interface AccessTokenTableProps {
 }
 
 export const AccessTokenTable: React.FC<AccessTokenTableProps> = ({ tokens, containerId, isLoading }) => {
+  const sortedTokens = useMemo(() => {
+    if (!tokens) return [];
+    const now = Date.now();
+    return [...tokens].sort((a, b) => {
+      const aExpired = new Date(a.expires_at).getTime() < now;
+      const bExpired = new Date(b.expires_at).getTime() < now;
+
+      // Prioridade de status: 0 (ATIVO), 1 (EXPIRADO), 2 (REVOGADO por último)
+      const getStatusWeight = (token: AccessToken, isExp: boolean) => {
+        if (!token.active) return 2;
+        if (isExp) return 1;
+        return 0;
+      };
+
+      const weightA = getStatusWeight(a, aExpired);
+      const weightB = getStatusWeight(b, bExpired);
+
+      if (weightA !== weightB) {
+        return weightA - weightB;
+      }
+
+      // Se o status for o mesmo, ordena por data de criação mais recente (decrescente)
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [tokens]);
+
   if (isLoading) {
     return (
       <div className="py-8">
@@ -18,7 +44,7 @@ export const AccessTokenTable: React.FC<AccessTokenTableProps> = ({ tokens, cont
     );
   }
 
-  if (!tokens || tokens.length === 0) {
+  if (!sortedTokens || sortedTokens.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground bg-muted/20 rounded-md border border-dashed border-border">
         Nenhum token encontrado para este container.
@@ -38,7 +64,7 @@ export const AccessTokenTable: React.FC<AccessTokenTableProps> = ({ tokens, cont
           </tr>
         </thead>
         <tbody>
-          {tokens.map((token) => (
+          {sortedTokens.map((token) => (
             <AccessTokenRow key={token.id} token={token} containerId={containerId} />
           ))}
         </tbody>

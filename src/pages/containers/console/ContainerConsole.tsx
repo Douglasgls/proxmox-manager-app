@@ -71,7 +71,7 @@ export const ContainerConsole: React.FC = () => {
       </div>
 
       {/* Janela de Emulação de Terminal */}
-      <div className="flex-1 min-h-0 relative flex flex-col bg-[#0c0f12] rounded-xl border border-border shadow-2xl">
+      <div className="flex-1 min-h-0 relative flex flex-col bg-[#0c0f12] rounded-xl border border-border shadow-2xl overflow-hidden">
         {status === 'connecting' && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0c0f12]/95 backdrop-blur-xs rounded-xl">
             <Loading message="Connecting..." />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useCloudConnection } from '@/hooks/useCloudConnection';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -8,14 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
 import { Cloud, CloudOff, CloudAlert, RefreshCw, KeyRound, CheckCircle2, ShieldCheck, Activity } from 'lucide-react';
-
-// Auxiliar para formatar a duração em formato HH:MM:SS
-const formatDuration = (seconds: number): string => {
-  const hrs = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-  return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-};
 
 export const CloudConnectionCard: React.FC = () => {
   const {
@@ -31,27 +23,13 @@ export const CloudConnectionCard: React.FC = () => {
 
   const [tokenInput, setTokenInput] = useState('');
   const [tokenError, setTokenError] = useState<string | null>(null);
-  const [connectedTimeSeconds, setConnectedTimeSeconds] = useState(0);
+  // const [connectedTimeSeconds, setConnectedTimeSeconds] = useState(0);
 
   const registered = status?.registered ?? false;
   const connected = status?.connected ?? false;
   const isConnecting = isReconnecting;
 
   // Timer local para calcular "Conectado há" enquanto estiver online
-  useEffect(() => {
-    let interval: any = null;
-    if (connected) {
-      interval = setInterval(() => {
-        setConnectedTimeSeconds((prev) => prev + 1);
-      }, 1000);
-    } else {
-      setConnectedTimeSeconds(0);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [connected]);
-
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tokenInput.trim()) {

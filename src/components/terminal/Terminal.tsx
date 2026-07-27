@@ -38,7 +38,7 @@ export const Terminal: React.FC<TerminalProps> = ({
 
     // Renderiza o xterm no DOM
     term.open(containerRef.current);
-    
+
     // Pequeno delay para garantir que o contêiner esteja com o tamanho renderizado
     const timeoutId = setTimeout(() => {
       try {
@@ -83,9 +83,9 @@ export const Terminal: React.FC<TerminalProps> = ({
   }, [onData, onResize, terminalRef]);
 
   return (
-    <div 
-      ref={containerRef} 
-      className="w-full h-full bg-[#0c0f12] p-3 overflow-hidden rounded-xl border border-border shadow-inner" 
+    <div
+      ref={containerRef}
+      className="w-full h-full bg-[#0c0f12] p-4 pt-2 overflow-hidden rounded-xl"
     />
   );
 };
