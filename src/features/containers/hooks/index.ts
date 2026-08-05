@@ -74,7 +74,13 @@ export const useDeleteContainer = () => {
 
 export { useCreateContainer } from './useCreateContainer';
 export { useJobChannel } from './useJobChannel';
-export { useTemplates } from './useTemplates';
+export {
+  useTemplates,
+  useInstalledTemplates,
+  useAvailableTemplates,
+  useDownloadTemplate,
+  useDeleteTemplate,
+} from './useTemplates';
 export { useBridges } from './useBridges';
 export * from './useAccessTokens';
 export { useEnableRemoteAccess } from './useEnableRemoteAccess';

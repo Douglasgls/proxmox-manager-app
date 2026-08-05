@@ -12,6 +12,17 @@ export const loginSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 
 /**
+ * Validação para formulário de Registro de Usuário.
+ */
+export const registerSchema = z.object({
+  username: z.string().min(2, 'O nome de usuário deve conter no mínimo 2 caracteres'),
+  email: z.string().min(1, 'E-mail é obrigatório').email('Formato de e-mail inválido'),
+  password: z.string().min(6, 'A senha deve conter no mínimo 6 caracteres'),
+});
+
+export type RegisterInput = z.infer<typeof registerSchema>;
+
+/**
  * Validação básica para criação/configuração de containers.
  */
 export const createContainerSchema = z.object({

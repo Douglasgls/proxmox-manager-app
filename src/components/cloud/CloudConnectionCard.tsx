@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
 import { Cloud, CloudOff, CloudAlert, RefreshCw, KeyRound, CheckCircle2, ShieldCheck, Activity } from 'lucide-react';
+import { extractErrorMessage } from '@/utils/error';
 
 export const CloudConnectionCard: React.FC = () => {
   const {
@@ -41,7 +42,7 @@ export const CloudConnectionCard: React.FC = () => {
       await register(tokenInput.trim());
       setTokenInput('');
     } catch (err: any) {
-      setTokenError(err?.response?.data?.detail || err?.message || 'Erro ao registrar token.');
+      setTokenError(extractErrorMessage(err, 'Erro ao registrar token.'));
     }
   };
 
@@ -167,7 +168,7 @@ export const CloudConnectionCard: React.FC = () => {
 
               {(tokenError || registerError) && (
                 <p className="text-[11px] text-destructive">
-                  {tokenError || (registerError as any)?.response?.data?.detail || 'Falha no registro.'}
+                  {tokenError || extractErrorMessage(registerError, 'Falha no registro.')}
                 </p>
               )}
 
@@ -213,7 +214,7 @@ export const CloudConnectionCard: React.FC = () => {
 
             {(reconnectError as any) && (
               <p className="text-[11px] text-destructive text-center">
-                {(reconnectError as any)?.response?.data?.detail || 'Erro ao tentar reconectar.'}
+                {extractErrorMessage(reconnectError, 'Erro ao tentar reconectar.')}
               </p>
             )}
 

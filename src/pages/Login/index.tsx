@@ -7,6 +7,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Server, Loader2, AlertCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ROUTES } from '@/utils/constants';
+import { extractErrorMessage } from '@/utils/error';
 
 export const Login: React.FC = () => {
   const { login } = useAuth();
@@ -32,9 +35,9 @@ export const Login: React.FC = () => {
       // Chama o login do AuthProvider. Se for bem sucedido, o layout redirecionará
       await login(data.email, data.password);
     } catch (err: any) {
-      const errorMessage = err.response?.data?.detail || "Erro ao realizar login";
+      const errorMessage = extractErrorMessage(err, 'Erro ao realizar login');
       setError(errorMessage);
-      console.log("Erro capturado no catch:", errorMessage);
+      console.log('Erro capturado no catch:', errorMessage);
     }
   };
 
@@ -110,6 +113,18 @@ export const Login: React.FC = () => {
             {isSubmitting && <Loader2 className="size-4 animate-spin" />}
             Entrar no Painel
           </Button>
+
+          <div className="pt-2 text-center border-t border-border/40 mt-4">
+            <span className="text-xs text-muted-foreground">
+              Novo no Proxmox Manager?{' '}
+              <Link
+                to={ROUTES.REGISTER}
+                className="font-semibold text-primary hover:underline transition-colors"
+              >
+                Criar nova conta
+              </Link>
+            </span>
+          </div>
         </form>
       </CardContent>
     </Card>

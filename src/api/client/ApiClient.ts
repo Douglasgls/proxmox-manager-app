@@ -62,8 +62,8 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Se a rota falhar na própria tentativa de login ou refresh token, propaga o erro diretamente para evitar loop
-    if (originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/refresh')) {
+    // Se a rota falhar na própria tentativa de login, registro ou refresh token, propaga o erro diretamente para evitar loop
+    if (originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/refresh') || originalRequest.url?.includes('/users')) {
       return Promise.reject(error);
     }
 

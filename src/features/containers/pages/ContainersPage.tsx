@@ -6,12 +6,14 @@ import EmptyState from '@/components/common/EmptyState';
 import { Button } from '@/components/ui/button';
 import { ContainerTable, type ContainerTableRow } from '../components/ContainerTable';
 import { CreateContainerModal } from '../components/CreateContainerModal';
+import { TemplateGalleryModal } from '../components/TemplateGalleryModal';
 import { useContainerInventory } from '../hooks';
 import { useContainersMetrics } from '@/hooks/websocket/useContainersMetrics';
-import { RefreshCw, Plus } from 'lucide-react';
+import { RefreshCw, Plus, Layers } from 'lucide-react';
 
 export const ContainersPage: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isTemplateGalleryOpen, setIsTemplateGalleryOpen] = useState(false);
 
   const {
     data: inventoryData,
@@ -93,6 +95,15 @@ export const ContainersPage: React.FC = () => {
               Recarregar
             </Button>
             <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsTemplateGalleryOpen(true)}
+              className="gap-2"
+            >
+              <Layers className="size-4 text-primary" />
+              Galeria de Templates
+            </Button>
+            <Button
               size="sm"
               className="gap-2"
               onClick={() => setIsCreateModalOpen(true)}
@@ -119,6 +130,12 @@ export const ContainersPage: React.FC = () => {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onContainerCreated={handleContainerCreated}
+      />
+
+      {/* Modal Galeria de Templates */}
+      <TemplateGalleryModal
+        isOpen={isTemplateGalleryOpen}
+        onClose={() => setIsTemplateGalleryOpen(false)}
       />
     </div>
   );

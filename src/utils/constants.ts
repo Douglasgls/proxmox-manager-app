@@ -3,6 +3,7 @@
  */
 export const ROUTES = {
   LOGIN: '/login',
+  REGISTER: '/register',
   APP: '/app',
   DASHBOARD: '/app/dashboard',
   CONTAINERS: '/app/containers',

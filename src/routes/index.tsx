@@ -8,6 +8,7 @@ import AuthLayout from '@/components/layout/AuthLayout';
 
 // Páginas
 import Login from '@/pages/Login';
+import Register from '@/pages/Register';
 import Dashboard from '@/pages/Dashboard';
 import Containers from '@/pages/Containers';
 import ContainerDetails from '@/features/containers/pages/ContainerDetailsPage';
@@ -33,6 +34,10 @@ export const router = createBrowserRouter([
           {
             path: '/login',
             element: <Login />,
+          },
+          {
+            path: '/register',
+            element: <Register />,
           },
         ],
       },
