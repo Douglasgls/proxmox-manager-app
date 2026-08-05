@@ -7,6 +7,8 @@ interface ProgressBarProps {
   showPercentage?: boolean;
   className?: string;
   height?: 'xs' | 'sm' | 'md' | 'lg';
+  variant?: 'default' | 'metric';
+  status?: 'normal' | 'error' | 'success' | 'warning';
 }
 
 export const ProgressBar: React.FC<ProgressBarProps> = ({
@@ -15,15 +17,25 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   showPercentage = false,
   className,
   height = 'sm',
+  variant = 'default',
+  status = 'normal',
 }) => {
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
 
-  // Determina a cor com base no preenchimento
+  // Determina a cor com base no status ou variação (metric vs default)
   let progressColor = 'bg-green-500 dark:bg-green-600';
-  if (percentage >= 90) {
+  if (status === 'error') {
     progressColor = 'bg-destructive';
-  } else if (percentage >= 70) {
+  } else if (status === 'warning') {
     progressColor = 'bg-yellow-500 dark:bg-yellow-600';
+  } else if (status === 'success') {
+    progressColor = 'bg-green-500 dark:bg-green-600';
+  } else if (variant === 'metric') {
+    if (percentage >= 90) {
+      progressColor = 'bg-destructive';
+    } else if (percentage >= 70) {
+      progressColor = 'bg-yellow-500 dark:bg-yellow-600';
+    }
   }
 
   const heightClasses = {

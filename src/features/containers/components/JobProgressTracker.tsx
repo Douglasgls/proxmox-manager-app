@@ -112,10 +112,7 @@ export const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({
         <ProgressBar
           value={jobStatus?.progress ?? 0}
           height="md"
-          className={cn(
-            isCompleted && '[&_div_div]:bg-green-500',
-            isFailed && '[&_div_div]:bg-red-500',
-          )}
+          status={isFailed ? 'error' : isCompleted ? 'success' : 'normal'}
         />
       </div>
 

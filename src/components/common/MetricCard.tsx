@@ -47,7 +47,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
             )}
           </div>
 
-          <ProgressBar value={percentage} showPercentage />
+          <ProgressBar value={percentage} showPercentage variant="metric" />
         </div>
       </CardContent>
     </Card>

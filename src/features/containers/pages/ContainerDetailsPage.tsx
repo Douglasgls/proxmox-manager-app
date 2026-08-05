@@ -275,6 +275,7 @@ export const ContainerDetailsPage: React.FC = () => {
                 value={metrics ? metrics.cpu_usage_percent : 0}
                 showPercentage={false}
                 className="h-2.5"
+                variant="metric"
               />
             </CardContent>
           </Card>
@@ -306,6 +307,7 @@ export const ContainerDetailsPage: React.FC = () => {
                   value={metrics ? metrics.memory_usage_percent : 0}
                   showPercentage={false}
                   className="h-2.5"
+                  variant="metric"
                 />
                 {metrics && metrics.swap_used_bytes > 0 && (
                   <p className="text-[10px] text-muted-foreground text-right">
@@ -340,6 +342,7 @@ export const ContainerDetailsPage: React.FC = () => {
                 value={metrics ? metrics.disk_usage_percent : 0}
                 showPercentage={false}
                 className="h-2.5"
+                variant="metric"
               />
             </CardContent>
           </Card>
