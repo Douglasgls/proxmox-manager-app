@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import PageHeader from '@/components/common/PageHeader';
 import Error from '@/components/common/Error';
@@ -72,6 +72,32 @@ export const Dashboard: React.FC = () => {
       queryKey: ["networks"],
       queryFn: inventoryApi.getNetworks,
   });
+
+  // Ordenação das Interfaces de Rede:
+  // 1º: Ativas com IP atribuído
+  // 2º: Ativas sem IP
+  // 3º: Inativas
+  const sortedInterfaces = useMemo(() => {
+    if (!networks?.interfaces) return [];
+
+    return [...networks.interfaces].sort((a, b) => {
+      const getRank = (net: typeof a) => {
+        const hasIp = Boolean(net.address && net.address.trim() !== '' && net.address !== 'Não atribuído');
+        if (net.active && hasIp) return 1;
+        if (net.active && !hasIp) return 2;
+        return 3;
+      };
+
+      const rankA = getRank(a);
+      const rankB = getRank(b);
+
+      if (rankA !== rankB) {
+        return rankA - rankB;
+      }
+
+      return a.name.localeCompare(b.name);
+    });
+  }, [networks]);
 
   useEffect(() => {
     if (wsMetrics) {
@@ -369,7 +395,7 @@ export const Dashboard: React.FC = () => {
             <CardTitle>Interfaces de Rede</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            {networks?.interfaces.map((network) => (
+            {sortedInterfaces.map((network) => (
               <div
                 key={network.name}
                 className="flex flex-col rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:bg-muted/30 hover:shadow-md"
