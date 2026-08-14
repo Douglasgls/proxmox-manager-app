@@ -63,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const response = await authApi.login({ email, password });
 
-      const payload = response.data || response;
+      const payload = (response as any).data || response;
 
       if (payload && payload.access_token) {
 
@@ -76,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         refreshProfile();
 
       } else {
-        throw new Error(response.message || 'Falha ao realizar login');
+        throw new Error((response as any).message || 'Falha ao realizar login');
       }
     } catch (error) {
       clearAuth();

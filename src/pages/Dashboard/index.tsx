@@ -95,7 +95,7 @@ export const Dashboard: React.FC = () => {
         return rankA - rankB;
       }
 
-      return a.name.localeCompare(b.name);
+      return (a.name || a.iface || '').localeCompare(b.name || b.iface || '');
     });
   }, [networks]);
 
@@ -381,7 +381,7 @@ export const Dashboard: React.FC = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Capacidade</span>
-                    <span className="font-medium">{formatBytes(storage.total_bytes)}</span>
+                    <span className="font-medium">{formatBytes(storage.total_bytes || storage.total || 0)}</span>
                   </div>
                 </div>
               </div>

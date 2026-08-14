@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { inventoryApi } from '@/api/modules/inventoryApi';
 import { cn } from '@/lib/utils';
-import { WIZARD_STEPS, DEFAULT_CONTAINER_VALUES, AVAILABLE_COMPONENTS } from '../constants';
+import { WIZARD_STEPS, DEFAULT_CONTAINER_VALUES } from '../constants';
 import type { WizardStepId } from '../constants';
-import type { CreateContainerDTO, IpMode, TemplateImage } from '../types';
+import type { CreateContainerDTO, IpMode, TemplateImage, ComponentItem } from '../types';
+import { useCatalogComponents } from '../hooks';
 import { ComponentSelector } from './ComponentSelector';
 import { NetworkConfigSection } from './NetworkConfigSection';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import { formatBytes } from '@/utils/bytes';
 import {
   Box, Cpu, HardDrive, Database, Network,
   Package, ChevronRight, ChevronLeft,
-  Check, Eye, Loader2, KeyRound,
+  Check, Eye, Loader2, KeyRound, AlertCircle, AlertTriangle
 } from 'lucide-react';
 
 interface NetworkBridge {
@@ -27,6 +28,7 @@ interface CreateContainerFormProps {
   isBridgesLoading: boolean;
   onSubmit: (dto: CreateContainerDTO) => void;
   isSubmitting: boolean;
+  errorMessage?: string | null;
 }
 
 const inputClasses =
@@ -41,11 +43,12 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
   isBridgesLoading,
   onSubmit,
   isSubmitting,
+  errorMessage,
 }) => {
   const [currentStep, setCurrentStep] = useState<WizardStepId>('basic');
   const currentStepIndex = WIZARD_STEPS.findIndex((s) => s.id === currentStep);
 
-  // Busca dados reais do host para limitar os sliders de recursos
+  // Busca dados reais do host e componentes
   const { data: hostInventory } = useQuery({
     queryKey: ['host', 'inventory'],
     queryFn: inventoryApi.getHost,
@@ -58,14 +61,53 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
     staleTime: Infinity,
   });
 
+  const { data: catalogComponents } = useCatalogComponents();
+
+  // Busca a lista de storages disponíveis no cluster
+  const { data: storagesList, isPending: isStoragesLoading } = useQuery({
+    queryKey: ['storages'],
+    queryFn: () => inventoryApi.getStorages(),
+    staleTime: Infinity,
+  });
+
+  // Filtra apenas os storages ativos que suportam discos de containers (rootdir)
+  const containerStorages = useMemo(() => {
+    if (!storagesList) return [];
+    return storagesList.filter(
+      (s) => s.active && s.content_types?.includes('rootdir')
+    );
+  }, [storagesList]);
+
+  // Estado para o storage de destino selecionado
+  const [selectedStorageName, setSelectedStorageName] = useState<string>('');
+
+  // Define o primeiro storage válido como padrão assim que carregar a lista
+  useEffect(() => {
+    if (containerStorages.length > 0 && !selectedStorageName) {
+      const defaultName = containerStorages[0].name || containerStorages[0].storage || '';
+      setSelectedStorageName(defaultName);
+    }
+  }, [containerStorages, selectedStorageName]);
+
+  const selectedStorage = useMemo(() => {
+    return containerStorages.find((s) => (s.name || s.storage) === selectedStorageName);
+  }, [containerStorages, selectedStorageName]);
+
   const maxCpuCores = hostInventory?.cpu_threads ?? 4;
   const maxMemoryMb = hostInventory
     ? Math.floor(hostInventory.memory_total_bytes / (1024 * 1024))
     : 2048;
 
-  const maxDiskGb = hostMetrics
-    ? Math.floor(hostMetrics.disk_free_bytes / (1024 * 1024 * 1024))
-    : 500;
+  // Recalcula o limite máximo do slider de disco (maxDiskGb) baseado no avail_bytes do storage selecionado
+  const maxDiskGb = useMemo(() => {
+    if (selectedStorage?.avail_bytes) {
+      return Math.floor(selectedStorage.avail_bytes / (1024 * 1024 * 1024));
+    }
+    if (hostMetrics?.disk_free_bytes) {
+      return Math.floor(hostMetrics.disk_free_bytes / (1024 * 1024 * 1024));
+    }
+    return 500;
+  }, [selectedStorage, hostMetrics]);
 
 
   // Form state
@@ -84,19 +126,38 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
   const [mtu, setMtu] = useState<number | null>(DEFAULT_CONTAINER_VALUES.mtu);
   const [vlan, setVlan] = useState<number | null>(DEFAULT_CONTAINER_VALUES.vlan);
   const [macAddress, setMacAddress] = useState<string | null>(DEFAULT_CONTAINER_VALUES.mac_address);
-  const [components, setComponents] = useState<string[]>(DEFAULT_CONTAINER_VALUES.components);
+  const [components, setComponents] = useState<ComponentItem[]>(DEFAULT_CONTAINER_VALUES.components);
 
   // Validations per step
   const isBasicValid = name.trim().length > 0 && password.length >= 5 && imageName.length > 0;
   const isResourcesValid = cpu >= 1 && memoryMb >= 128 && diskGb >= 1;
   const isNetworkValid = ipMode === 'dhcp' || (!!ipAddress && !!cidr);
 
+  const areComponentsValid = useMemo(() => {
+    return components.every((item) => {
+      if (typeof item === 'object') {
+        const comp = catalogComponents?.find((c) => c.slug === item.slug);
+        const envSchema = comp?.metadata?.env_vars_schema || [];
+        const envValues = item.config.env || {};
+
+        return envSchema.every((schemaItem) => {
+          if (schemaItem.required) {
+            const val = envValues[schemaItem.name];
+            return val && val.trim() !== '';
+          }
+          return true;
+        });
+      }
+      return true;
+    });
+  }, [components, catalogComponents]);
+
   const canProceed = (): boolean => {
     switch (currentStep) {
       case 'basic': return isBasicValid;
       case 'resources': return isResourcesValid;
       case 'network': return isNetworkValid;
-      case 'components': return true;
+      case 'components': return areComponentsValid;
       case 'review': return true;
       default: return false;
     }
@@ -126,6 +187,7 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
       cpu,
       memory_mb: memoryMb,
       disk_gb: diskGb,
+      storage: selectedStorageName || undefined,
       image_name: formattedImageName,
       bridge,
       ip_mode: ipMode,
@@ -199,6 +261,16 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
 
       {/* Step Content */}
       <div className="flex-1 overflow-y-auto min-h-0 px-1">
+        {/* Error message banner */}
+        {errorMessage && (
+          <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive flex items-start gap-2.5 text-xs font-medium animate-in fade-in duration-200">
+            <AlertCircle className="size-4 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <span className="font-semibold block mb-0.5">Falha na criação do container</span>
+              <span>{errorMessage}</span>
+            </div>
+          </div>
+        )}
         {/* ── Step 1: Basic ── */}
         {currentStep === 'basic' && (
           <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -214,6 +286,9 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
               </label>
               <input
                 type="text"
+                id="container_name_input"
+                name="container_name_input"
+                autoComplete="off"
                 value={name}
                 onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z0-9-]/g, ''))}
                 placeholder="my-lxc-container"
@@ -230,6 +305,9 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
               </label>
               <input
                 type="password"
+                id="container_root_password_input"
+                name="container_root_password_input"
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Mínimo 5 caracteres"
@@ -346,6 +424,38 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
               </div>
             </div>
 
+            {/* Storage de Destino (Disco) */}
+            <div className="space-y-1.5">
+              <label className={labelClasses}>
+                <Database className="size-3.5 text-primary" />
+                Storage de Destino (Disco)
+              </label>
+              {isStoragesLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                  <Loader2 className="size-4 animate-spin" />
+                  Carregando storages do Proxmox...
+                </div>
+              ) : (
+                <select
+                  value={selectedStorageName}
+                  onChange={(e) => setSelectedStorageName(e.target.value)}
+                  className={cn(inputClasses, 'cursor-pointer')}
+                >
+                  {containerStorages.map((storage) => {
+                    const name = storage.name || storage.storage || '';
+                    const availGb = storage.avail_bytes
+                      ? Math.floor(storage.avail_bytes / (1024 * 1024 * 1024))
+                      : 0;
+                    return (
+                      <option key={name} value={name}>
+                        {name} ({availGb} GB livres)
+                      </option>
+                    );
+                  })}
+                </select>
+              )}
+            </div>
+
             {/* Disk */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -428,6 +538,16 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
             <p className="text-xs text-muted-foreground mb-4">
               Selecione os pacotes que deseja instalar automaticamente durante a criação do container.
             </p>
+
+            {!areComponentsValid && (
+              <div className="mb-4 p-3 rounded-xl bg-[#EED202]/10 border border-[#EED202]/30 text-[#EED202] text-xs font-medium flex items-center gap-2.5 animate-in fade-in duration-200">
+                <AlertTriangle className="size-4 shrink-0 text-[#EED202]" />
+                <span>
+                  Existem componentes Docker selecionados com variáveis de ambiente obrigatórias pendentes. Clique no ícone de engrenagem piscando em amarelo para configurá-los.
+                </span>
+              </div>
+            )}
+
             <ComponentSelector selected={components} onChange={setComponents} />
           </div>
         )}
@@ -450,15 +570,13 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
                   <Box className="size-3" />
                   Básico
                 </h4>
-                <div className="grid grid-cols-2 gap-y-1.5 text-sm">
+                <div className="grid grid-cols-2 gap-2 text-xs">
                   <span className="text-muted-foreground">Nome</span>
                   <span className="font-medium text-foreground">{name}</span>
-                  <span className="text-muted-foreground">Imagem</span>
-                  <span className="font-medium text-foreground text-xs">
+                  <span className="text-muted-foreground">Template</span>
+                  <span className="font-medium text-foreground">
                     {selectedTemplate?.name || imageName}
                   </span>
-                  <span className="text-muted-foreground">Senha</span>
-                  <span className="font-medium text-foreground">••••••••</span>
                 </div>
               </div>
 
@@ -468,23 +586,19 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
                   <Cpu className="size-3" />
                   Recursos
                 </h4>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="text-center p-2 rounded-md bg-muted/50">
-                    <p className="text-lg font-bold text-foreground">{cpu}</p>
-                    <p className="text-[10px] text-muted-foreground">CPU Cores</p>
-                  </div>
-                  <div className="text-center p-2 rounded-md bg-muted/50">
-                    <p className="text-lg font-bold text-foreground">
-                      {memoryMb >= 1024 ? `${(memoryMb / 1024).toFixed(1)}` : memoryMb}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {memoryMb >= 1024 ? 'GB RAM' : 'MB RAM'}
-                    </p>
-                  </div>
-                  <div className="text-center p-2 rounded-md bg-muted/50">
-                    <p className="text-lg font-bold text-foreground">{diskGb}</p>
-                    <p className="text-[10px] text-muted-foreground">GB Disco</p>
-                  </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <span className="text-muted-foreground">CPU Cores</span>
+                  <span className="font-medium text-foreground">{cpu} vCPU</span>
+                  <span className="text-muted-foreground">Memória</span>
+                  <span className="font-medium text-foreground">{memoryMb} MB ({memoryMb / 1024} GB)</span>
+                  <span className="text-muted-foreground">Disco</span>
+                  <span className="font-medium text-foreground">{diskGb} GB</span>
+                  {selectedStorageName && (
+                    <>
+                      <span className="text-muted-foreground">Storage</span>
+                      <span className="font-medium text-foreground">{selectedStorageName}</span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -494,11 +608,11 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
                   <Network className="size-3" />
                   Rede
                 </h4>
-                <div className="grid grid-cols-2 gap-y-1.5 text-sm">
+                <div className="grid grid-cols-2 gap-2 text-xs">
                   <span className="text-muted-foreground">Bridge</span>
                   <span className="font-medium text-foreground">{bridge}</span>
-                  <span className="text-muted-foreground">Modo de IP</span>
-                  <span className="font-medium text-foreground uppercase">{ipMode}</span>
+                  <span className="text-muted-foreground">Modo IP</span>
+                  <span className="font-medium text-foreground capitalize">{ipMode}</span>
                   {ipMode === 'static' && (
                     <>
                       <span className="text-muted-foreground">IP</span>
@@ -525,13 +639,21 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
                 {components.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5">
                     {components.map((c) => {
-                      const comp = AVAILABLE_COMPONENTS.find((a) => a.id === c);
+                      const slug = typeof c === 'string' ? c : c.slug;
+                      const config = typeof c === 'object' ? c.config : undefined;
+                      const comp = catalogComponents?.find((a) => a.slug === slug || a.id === slug);
+                      const displayInternalPort = config?.container_port || comp?.metadata?.default_config?.container_port || comp?.default_config?.container_port || config?.host_port;
                       return (
                         <span
-                          key={c}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium"
+                          key={slug}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium border border-primary/20"
                         >
-                          {comp?.name || c}
+                          <span>{comp?.name || slug}</span>
+                          {config && config.host_port && (
+                            <span className="text-[10px] font-mono opacity-90 border-l border-primary/30 pl-1.5">
+                              {config.host_port}:{displayInternalPort}
+                            </span>
+                          )}
                         </span>
                       );
                     })}

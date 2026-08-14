@@ -67,7 +67,7 @@ export const useContainerConsole = (containerId: string) => {
       // onClose
       (event) => {
         setStatus('disconnected');
-        
+
         let errorMsg = 'Conexão encerrada.';
         if (event.code === 4004) {
           errorMsg = 'O container está desligado. Inicialize o container para acessar o console.';
@@ -78,7 +78,7 @@ export const useContainerConsole = (containerId: string) => {
         } else if (event.reason) {
           errorMsg = event.reason;
         }
-        
+
         setError(errorMsg);
 
         if (terminalRef.current) {

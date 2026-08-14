@@ -22,12 +22,15 @@ import {
   ArrowLeft, Cpu, HardDrive, Database, Activity,
   ArrowDownToLine, ArrowUpFromLine, Binary, Clock,
   RefreshCw, Info, FileInput, FileOutput,
-  Loader2, Globe
+  Loader2, Globe, Package
 } from 'lucide-react';
 
+
 import { AccessSetupButton } from './../components/container-access/AccessSetupButton';
+import { ContainerComponentsSheet } from '../components/ContainerComponentsSheet';
 
 export const ContainerDetailsPage: React.FC = () => {
+  const [isComponentsSheetOpen, setIsComponentsSheetOpen] = React.useState(false);
   const { containerId } = useParams<{ containerId: string }>();
   const id = containerId || '';
 
@@ -115,6 +118,15 @@ export const ContainerDetailsPage: React.FC = () => {
           >
             <RefreshCw className="size-4" />
             Sincronizar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsComponentsSheetOpen(true)}
+            className="gap-1.5"
+          >
+            <Package className="size-4 text-primary" />
+            Componentes
           </Button>
           <AccessSetupButton 
             containerId={inventory.id} 
@@ -347,7 +359,6 @@ export const ContainerDetailsPage: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* TODO: LEMBRAR DE REMOVER ESSE CARD OU IMPLEMTNAR UMA CHECAGEM DE FATO */}
           {/* Status Monitor Card */}
           <Card className="border-border shadow-sm">
             <CardHeader className="pb-2">
@@ -374,6 +385,8 @@ export const ContainerDetailsPage: React.FC = () => {
         </div>
 
       </div>
+
+
 
       {/* Network & Storage I/O Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -441,6 +454,16 @@ export const ContainerDetailsPage: React.FC = () => {
         </Card>
 
       </div>
+
+      {/* Components Management Sheet */}
+      <ContainerComponentsSheet
+        isOpen={isComponentsSheetOpen}
+        onClose={() => setIsComponentsSheetOpen(false)}
+        containerId={inventory.id}
+        containerName={inventory.name}
+        vmid={inventory.container_id}
+        components={inventory.components}
+      />
     </div>
   );
 };

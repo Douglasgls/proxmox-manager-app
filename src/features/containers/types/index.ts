@@ -9,6 +9,65 @@ export interface ContainerInventory {
   memory_total_bytes: number;
   disk_total_bytes: number;
   ip_address?: string | null;
+  components?: ContainerComponentStatus[];
+}
+
+export type ComponentInstallStatus = 'PENDING' | 'INSTALLING' | 'INSTALLED' | 'FAILED';
+
+export interface ContainerComponentStatus {
+  slug: string;
+  name: string;
+  category: string;
+  status: ComponentInstallStatus;
+  installed_version?: string | null;
+  error?: string | null;
+  installed_at?: string | null;
+}
+
+export interface ComponentDefaultConfig {
+  host?: string;
+  host_port?: number;
+  container_port?: number;
+  restart_policy?: string;
+}
+
+export interface EnvVarSchema {
+  name: string;
+  description?: string;
+  required?: boolean;
+  default?: string;
+  type?: 'text' | 'password' | 'number' | string;
+}
+
+export interface VolumeSchema {
+  name: string;
+  mount_path: string;
+  description?: string;
+}
+
+export interface ComponentMetadata {
+  is_web_app?: boolean;
+  protocol?: string;
+  website_url?: string;
+  documentation_url?: string;
+  default_config?: ComponentDefaultConfig;
+  env_vars_schema?: EnvVarSchema[];
+  volumes_schema?: VolumeSchema[];
+}
+
+export interface CatalogComponent {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+  version: string;
+  description: string;
+  is_default: boolean;
+  is_active: boolean;
+  image?: string;
+  container_name?: string;
+  default_config?: ComponentDefaultConfig;
+  metadata?: ComponentMetadata;
 }
 
 export interface ContainerMetrics {
@@ -46,7 +105,22 @@ export interface ContainerActionResponse {
   status: string;
 }
 
-// ─── Container Creation Types ───────────────────────────────────────────────
+// ─── Container Creation & Component Config Types ──────────────────────────────────────
+
+export interface DockerAppConfig {
+  host_port: number;
+  container_port?: number;
+  host?: '0.0.0.0' | '127.0.0.1' | string;
+  restart_policy?: 'unless-stopped' | 'always' | 'no' | string;
+  env?: Record<string, string>;
+}
+
+export interface ComponentConfigObject {
+  slug: string;
+  config: DockerAppConfig;
+}
+
+export type ComponentItem = string | ComponentConfigObject;
 
 export type IpMode = 'dhcp' | 'static';
 
@@ -56,6 +130,7 @@ export interface CreateContainerDTO {
   cpu: number;
   memory_mb: number;
   disk_gb: number;
+  storage?: string;
   image_name: string;
   bridge: string;
   ip_mode: IpMode;
@@ -66,7 +141,7 @@ export interface CreateContainerDTO {
   mtu: number | null;
   vlan: number | null;
   mac_address: string | null;
-  components: string[];
+  components: ComponentItem[];
 }
 
 export interface JobCreatedResponse {

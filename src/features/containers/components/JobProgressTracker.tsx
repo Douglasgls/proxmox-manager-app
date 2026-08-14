@@ -119,7 +119,7 @@ export const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({
       {/* Current Step */}
       {jobStatus?.current_step && (
         <div className="flex items-center gap-2 mb-3 p-2.5 rounded-lg bg-muted/50 border border-border/50">
-          <Wrench className={cn('size-3.5 text-primary shrink-0', isRunning && 'animate-spin')} />
+          <Wrench className="size-3.5 text-primary shrink-0" />
           <span className="text-xs font-medium text-foreground truncate">
             {jobStatus.current_step}
           </span>

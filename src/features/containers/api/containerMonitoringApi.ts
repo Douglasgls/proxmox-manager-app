@@ -20,6 +20,7 @@ export const containerMonitoringApi = {
           ...container,
           id: matchingContainer ? matchingContainer.id : '',
           ip_address: matchingContainer ? matchingContainer.ip_address : null,
+          components: matchingContainer ? matchingContainer.components : [],
         };
       });
     }
@@ -74,6 +75,7 @@ export const containerMonitoringApi = {
       ...response.data,
       id: uuid,
       ip_address: dbContainerData ? dbContainerData.ip_address : null,
+      components: dbContainerData ? dbContainerData.components : [],
     };
   },
 

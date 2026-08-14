@@ -45,10 +45,18 @@ export const CreateContainerModal: React.FC<CreateContainerModalProps> = ({
     }
   }, [createMutation]);
 
+  const errorMessage = createMutation.error
+    ? (createMutation.error as any)?.response?.data?.detail ||
+      (createMutation.error as any)?.response?.data?.message ||
+      createMutation.error.message ||
+      'Erro ao criar container.'
+    : null;
+
   const handleClose = useCallback(() => {
     // Reset state
     setView('form');
     setActiveJobId(null);
+    createMutation.reset();
 
     // Notify parent if container was created successfully
     if (isCompleted && onContainerCreated) {
@@ -56,7 +64,7 @@ export const CreateContainerModal: React.FC<CreateContainerModalProps> = ({
     }
 
     onClose();
-  }, [isCompleted, onContainerCreated, onClose]);
+  }, [isCompleted, onContainerCreated, onClose, createMutation]);
 
   if (!isOpen) return null;
 
@@ -113,6 +121,7 @@ export const CreateContainerModal: React.FC<CreateContainerModalProps> = ({
                 isBridgesLoading={isBridgesLoading}
                 onSubmit={handleSubmit}
                 isSubmitting={createMutation.isPending}
+                errorMessage={errorMessage}
               />
             ) : (
               <JobProgressTracker

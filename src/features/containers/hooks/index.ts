@@ -84,3 +84,5 @@ export {
 export { useBridges } from './useBridges';
 export * from './useAccessTokens';
 export { useEnableRemoteAccess } from './useEnableRemoteAccess';
+export { useCatalogComponents, useInstallComponents } from './useCatalogComponents';
+

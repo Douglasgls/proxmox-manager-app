@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { X, Box, Activity } from 'lucide-react';
+import { X, Activity } from 'lucide-react';
 import { JobProgressTracker } from './JobProgressTracker';
 import { useJobChannel } from '../hooks';
 
