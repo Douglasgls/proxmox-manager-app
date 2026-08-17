@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Loading } from '../common/Loading';
+import ErrorBoundary from '../common/ErrorBoundary';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
@@ -31,7 +32,9 @@ export const AppLayout: React.FC = () => {
         {/* Content Body */}
         <main className="flex-1 overflow-y-auto p-6 md:p-8 bg-muted/20">
           <div className="mx-auto max-w-7xl">
-            <Outlet />
+            <ErrorBoundary>
+              <Outlet />
+            </ErrorBoundary>
           </div>
         </main>
       </div>

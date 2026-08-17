@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import PageHeader from '@/components/common/PageHeader';
 import Loading from '@/components/common/Loading';
-import Error from '@/components/common/Error';
+import ErrorAlert from '@/components/common/Error';
 import EmptyState from '@/components/common/EmptyState';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, ClipboardList } from 'lucide-react';
@@ -44,7 +44,7 @@ export const Jobs: React.FC = () => {
           title="Histórico de Tarefas (Jobs)"
           description="Acompanhamento e logs de tarefas assíncronas executadas pela plataforma."
         />
-        <Error
+        <ErrorAlert
           title="Erro ao carregar dados"
           message={errorMsg}
           onRetry={() => refetch()}

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import PageHeader from '@/components/common/PageHeader';
 import Loading from '@/components/common/Loading';
-import Error from '@/components/common/Error';
+import ErrorAlert from '@/components/common/Error';
 import EmptyState from '@/components/common/EmptyState';
 import { Button } from '@/components/ui/button';
 import { ContainerTable, type ContainerTableRow } from '../components/ContainerTable';
@@ -69,7 +69,7 @@ export const ContainersPage: React.FC = () => {
           title="Containers"
           description="Monitore e gerencie seus containers LXC no cluster."
         />
-        <Error
+        <ErrorAlert
           title="Erro ao carregar dados"
           message={errorMsg}
           onRetry={handleRefresh}

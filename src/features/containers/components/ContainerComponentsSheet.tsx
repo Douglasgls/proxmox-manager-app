@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ComponentSelector } from './ComponentSelector';
 import { JobProgressTracker } from './JobProgressTracker';
 import { useInstallComponents, useJobChannel } from '../hooks';
 import type { ContainerComponentStatus, ComponentItem } from '../types';
+import { normalizeCategory, sanitizeConfigForDisplay } from '../utils/componentSanitizer';
 import {
   Package,
   X,
@@ -15,7 +17,6 @@ import {
   AlertCircle,
   Plus,
   Layers,
-  Sparkles,
   Check,
   Activity,
 } from 'lucide-react';
@@ -37,6 +38,7 @@ export const ContainerComponentsSheet: React.FC<ContainerComponentsSheetProps> =
   vmid,
   components = [],
 }) => {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'installed' | 'install'>('installed');
   const [selectedNewComponents, setSelectedNewComponents] = useState<ComponentItem[]>([]);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
@@ -52,6 +54,16 @@ export const ContainerComponentsSheet: React.FC<ContainerComponentsSheetProps> =
     isFailed: isJobFailed,
     elapsedSeconds,
   } = useJobChannel(activeJobId);
+
+  // Invalida a query quando o Job finaliza com sucesso via WebSocket (sem necessidade de F5)
+  useEffect(() => {
+    if (isJobCompleted) {
+      queryClient.invalidateQueries({ queryKey: ['containers'] });
+      queryClient.invalidateQueries({ queryKey: ['containers', containerId] });
+      queryClient.invalidateQueries({ queryKey: ['containers', containerId, 'inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['containers', 'inventory'] });
+    }
+  }, [isJobCompleted, containerId, queryClient]);
 
   const handleInstallNew = async () => {
     if (selectedNewComponents.length === 0) return;
@@ -155,7 +167,7 @@ export const ContainerComponentsSheet: React.FC<ContainerComponentsSheetProps> =
           {activeJobId ? (
             <div className="space-y-4">
               <div className="flex items-center gap-2 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-500 text-xs font-medium">
-                <Activity className="size-4 animate-spin shrink-0" />
+                <Activity className="size-4 shrink-0" />
                 <span>Instalação de componentes em andamento via WebSocket</span>
               </div>
 
@@ -210,84 +222,127 @@ export const ContainerComponentsSheet: React.FC<ContainerComponentsSheetProps> =
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {components.map((comp) => (
-                        <div
-                          key={comp.slug}
-                          className="p-4 rounded-xl border border-border/70 bg-card hover:bg-muted/20 transition-all space-y-3 shadow-xs"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-sm text-foreground">
-                                  {comp.name || comp.slug}
-                                </span>
-                                {comp.installed_version && (
-                                  <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                                    v{comp.installed_version}
+                      {components.map((comp, idx) => {
+                        const catNorm = normalizeCategory(comp.category);
+                        const cleanConfig = sanitizeConfigForDisplay(comp.config);
+                        const containerName = cleanConfig?.container_name;
+                        const host = cleanConfig?.host ?? '0.0.0.0';
+                        const hostPort = cleanConfig?.host_port;
+                        const containerPort = cleanConfig?.container_port;
+                        const restartPolicy = cleanConfig?.restart_policy;
+                        const volumes = cleanConfig?.volumes;
+
+                        return (
+                          <div
+                            key={`${comp.slug}-${idx}`}
+                            className="p-4 rounded-xl border border-border/70 bg-card hover:bg-muted/20 transition-all space-y-3 shadow-xs"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-sm text-foreground">
+                                    {comp.name || comp.slug}
                                   </span>
+                                  {comp.installed_version && (
+                                    <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                      v{comp.installed_version}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-xs text-muted-foreground uppercase font-semibold tracking-wider block">
+                                  {catNorm === 'docker_apps' ? 'DOCKER APPS' : 'NATIVOS'}
+                                </span>
+                              </div>
+
+                              {/* Status badge */}
+                              {comp.status === 'PENDING' && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                  <Clock className="size-3.5" />
+                                  Pendente
+                                </span>
+                              )}
+                              {comp.status === 'INSTALLING' && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                                  <Loader2 className="size-3.5 animate-spin" />
+                                  Instalando...
+                                </span>
+                              )}
+                              {comp.status === 'INSTALLED' && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                  <CheckCircle2 className="size-3.5" />
+                                  Instalado
+                                </span>
+                              )}
+                              {comp.status === 'FAILED' && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
+                                  <XCircle className="size-3.5" />
+                                  Falhou
+                                </span>
+                              )}
+                              {!['PENDING', 'INSTALLING', 'INSTALLED', 'FAILED'].includes(comp.status) && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground">
+                                  {comp.status}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Docker App Details */}
+                            {catNorm === 'docker_apps' && cleanConfig && (
+                              <div className="p-3 rounded-lg bg-muted/40 border border-border/50 text-xs space-y-1.5 font-mono">
+                                {containerName && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground font-sans font-medium">Container:</span>
+                                    <span className="font-bold text-foreground">{containerName}</span>
+                                  </div>
+                                )}
+                                {hostPort && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground font-sans font-medium">Porta:</span>
+                                    <span className="font-bold text-primary">
+                                      {host}:{hostPort} {containerPort ? `→ ${containerPort}` : ''}
+                                    </span>
+                                  </div>
+                                )}
+                                {restartPolicy && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground font-sans font-medium">Restart:</span>
+                                    <span className="text-foreground">{restartPolicy}</span>
+                                  </div>
+                                )}
+                                {volumes && volumes.length > 0 && (
+                                  <div className="pt-1 border-t border-border/30">
+                                    <span className="text-muted-foreground font-sans font-medium block mb-0.5">Volumes:</span>
+                                    {volumes.map((vol, vIdx) => (
+                                      <div key={vIdx} className="text-[11px] text-muted-foreground truncate" title={vol}>
+                                        • {vol}
+                                      </div>
+                                    ))}
+                                  </div>
                                 )}
                               </div>
-                              <span className="text-xs text-muted-foreground uppercase font-medium tracking-wider block">
-                                {comp.category === 'database'
-                                  ? 'Banco de Dados'
-                                  : comp.category === 'programming_language'
-                                  ? 'Linguagem'
-                                  : comp.category}
-                              </span>
-                            </div>
+                            )}
 
-                            {/* Status badge */}
-                            {comp.status === 'PENDING' && (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                                <Clock className="size-3.5" />
-                                Pendente
-                              </span>
+                            {comp.installed_at && (
+                              <div className="text-[11px] text-muted-foreground flex items-center gap-1 pt-1 border-t border-border/30">
+                                <Clock className="size-3" />
+                                <span>Instalado em: {new Date(comp.installed_at).toLocaleString()}</span>
+                              </div>
                             )}
-                            {comp.status === 'INSTALLING' && (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                                <Loader2 className="size-3.5 animate-spin" />
-                                Instalando...
-                              </span>
-                            )}
-                            {comp.status === 'INSTALLED' && (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                                <CheckCircle2 className="size-3.5" />
-                                Instalado
-                              </span>
-                            )}
-                            {comp.status === 'FAILED' && (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
-                                <XCircle className="size-3.5" />
-                                Falhou
-                              </span>
-                            )}
-                            {!['PENDING', 'INSTALLING', 'INSTALLED', 'FAILED'].includes(comp.status) && (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground">
-                                {comp.status}
-                              </span>
+
+                            {comp.status === 'FAILED' && comp.error && (
+                              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 space-y-1">
+                                <div className="flex items-center gap-1.5 text-xs font-semibold">
+                                  <AlertCircle className="size-3.5 shrink-0" />
+                                  <span>Detalhes da Falha:</span>
+                                </div>
+                                <pre className="text-[11px] font-mono whitespace-pre-wrap break-all leading-tight bg-background/60 p-2 rounded border border-red-500/10 max-h-32 overflow-y-auto">
+                                  {comp.error}
+                                </pre>
+                              </div>
                             )}
                           </div>
-
-                          {comp.installed_at && (
-                            <div className="text-[11px] text-muted-foreground flex items-center gap-1 pt-1 border-t border-border/30">
-                              <Clock className="size-3" />
-                              <span>Instalado em: {new Date(comp.installed_at).toLocaleString()}</span>
-                            </div>
-                          )}
-
-                          {comp.status === 'FAILED' && comp.error && (
-                            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 space-y-1">
-                              <div className="flex items-center gap-1.5 text-xs font-semibold">
-                                <AlertCircle className="size-3.5 shrink-0" />
-                                <span>Detalhes da Falha:</span>
-                              </div>
-                              <pre className="text-[11px] font-mono whitespace-pre-wrap break-all leading-tight bg-background/60 p-2 rounded border border-red-500/10 max-h-32 overflow-y-auto">
-                                {comp.error}
-                              </pre>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -296,21 +351,10 @@ export const ContainerComponentsSheet: React.FC<ContainerComponentsSheetProps> =
               {/* TAB 2: INSTALL NEW COMPONENTS */}
               {activeTab === 'install' && (
                 <div className="space-y-4">
-                  <div className="p-3 rounded-xl bg-primary/5 border border-primary/15 flex items-start gap-2.5 text-xs text-muted-foreground">
-                    <Sparkles className="size-4 text-primary shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-semibold text-foreground block mb-0.5">
-                        Selecione novos pacotes
-                      </span>
-                      <span>
-                        Escolha os componentes extras do catálogo para instalar neste container.
-                      </span>
-                    </div>
-                  </div>
-
                   <ComponentSelector
                     selected={selectedNewComponents}
                     onChange={setSelectedNewComponents}
+                    installedComponents={components}
                   />
                 </div>
               )}

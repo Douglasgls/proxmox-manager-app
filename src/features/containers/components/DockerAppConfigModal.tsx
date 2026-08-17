@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import type { CatalogComponent, DockerAppConfig, ComponentItem, EnvVarSchema, VolumeSchema } from '../types';
+import type { CatalogComponent, DockerAppConfig, ComponentItem, EnvVarSchema, VolumeSchema, ContainerComponentStatus } from '../types';
 import {
   Settings,
   Globe,
@@ -21,6 +21,7 @@ import {
   Trash2,
   Terminal,
   Info,
+  Package,
 } from 'lucide-react';
 import dockerIcon from '@/assets/docker.webp';
 
@@ -30,6 +31,7 @@ interface DockerAppConfigModalProps {
   component: CatalogComponent | null;
   initialConfig?: DockerAppConfig;
   currentlySelectedItems?: ComponentItem[];
+  installedComponents?: ContainerComponentStatus[];
   onSave: (config: DockerAppConfig) => void;
 }
 
@@ -41,6 +43,7 @@ export const DockerAppConfigModal: React.FC<DockerAppConfigModalProps> = ({
   component,
   initialConfig,
   currentlySelectedItems = [],
+  installedComponents = [],
   onSave,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('network');
@@ -59,6 +62,7 @@ export const DockerAppConfigModal: React.FC<DockerAppConfigModalProps> = ({
   const defaultHostPort = initialConfig?.host_port || defaultConfig?.host_port || defaultInternalPort;
 
   // Form states
+  const [containerName, setContainerName] = useState<string>('');
   const [hostPort, setHostPort] = useState<number>(defaultHostPort);
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [containerPortOverride, setContainerPortOverride] = useState<string>(
@@ -67,8 +71,8 @@ export const DockerAppConfigModal: React.FC<DockerAppConfigModalProps> = ({
   const [bindHost, setBindHost] = useState<'0.0.0.0' | '127.0.0.1'>(
     (initialConfig?.host as '0.0.0.0' | '127.0.0.1') || '0.0.0.0'
   );
-  const [restartPolicy, setRestartPolicy] = useState<'unless-stopped' | 'always' | 'no'>(
-    (initialConfig?.restart_policy as 'unless-stopped' | 'always' | 'no') || 'unless-stopped'
+  const [restartPolicy, setRestartPolicy] = useState<'unless-stopped' | 'always' | 'no' | 'on-failure'>(
+    (initialConfig?.restart_policy as 'unless-stopped' | 'always' | 'no' | 'on-failure') || 'unless-stopped'
   );
 
   // Env vars state
@@ -84,10 +88,36 @@ export const DockerAppConfigModal: React.FC<DockerAppConfigModalProps> = ({
       const defIntPort = defaultConfig?.container_port || 8080;
       const defHPort = initialConfig?.host_port || defaultConfig?.host_port || defIntPort;
 
+      // Suggest container name automatically
+      const baseName = component.container_name || `${component.slug}-app`;
+      let suggested = initialConfig?.container_name || '';
+      if (!suggested) {
+        const existingNames = new Set<string>();
+        (installedComponents || []).forEach((c) => {
+          if (c.config?.container_name) existingNames.add(c.config.container_name.toLowerCase());
+        });
+        currentlySelectedItems.forEach((item) => {
+          if (typeof item === 'object' && item.config?.container_name) {
+            existingNames.add(item.config.container_name.toLowerCase());
+          }
+        });
+
+        if (!existingNames.has(baseName.toLowerCase())) {
+          suggested = baseName;
+        } else {
+          let idx = 2;
+          while (existingNames.has(`${component.slug}-${idx}`.toLowerCase())) {
+            idx++;
+          }
+          suggested = `${component.slug}-${idx}`;
+        }
+      }
+      setContainerName(suggested);
+
       setHostPort(defHPort);
       setContainerPortOverride(initialConfig?.container_port ? String(initialConfig.container_port) : '');
       setBindHost((initialConfig?.host as '0.0.0.0' | '127.0.0.1') || '0.0.0.0');
-      setRestartPolicy((initialConfig?.restart_policy as 'unless-stopped' | 'always' | 'no') || 'unless-stopped');
+      setRestartPolicy((initialConfig?.restart_policy as 'unless-stopped' | 'always' | 'no' | 'on-failure') || 'unless-stopped');
 
       // Initialize env values from initialConfig or default values in envSchema
       const initialEnv: Record<string, string> = { ...(initialConfig?.env || {}) };
@@ -123,7 +153,7 @@ export const DockerAppConfigModal: React.FC<DockerAppConfigModalProps> = ({
       setActiveTab('network');
       setError(null);
     }
-  }, [component, initialConfig, isOpen]);
+  }, [component, initialConfig, isOpen, installedComponents, currentlySelectedItems]);
 
   if (!isOpen || !component) return null;
 
@@ -131,16 +161,42 @@ export const DockerAppConfigModal: React.FC<DockerAppConfigModalProps> = ({
     ? parseInt(containerPortOverride, 10) || defaultInternalPort
     : defaultInternalPort;
 
-  // Conflict validation
+  // Conflict validation for host port
   const checkPortConflict = (currentHostPort: number, currentHost: string): boolean => {
-    return currentlySelectedItems.some((item) => {
-      if (typeof item === 'object' && item.slug !== component.slug && item.config) {
-        const otherHost = item.config.host ?? '0.0.0.0';
-        const otherPort = item.config.host_port;
-        return otherHost === currentHost && Number(otherPort) === Number(currentHostPort);
+    const inInstalled = (installedComponents || []).some((c) => {
+      if (c.config && c.config.host_port) {
+        const otherHost = c.config.host ?? '0.0.0.0';
+        const otherPort = c.config.host_port;
+        const isHostOverlap = otherHost === currentHost || currentHost === '0.0.0.0' || otherHost === '0.0.0.0';
+        return isHostOverlap && Number(otherPort) === Number(currentHostPort);
       }
       return false;
     });
+    if (inInstalled) return true;
+
+    return currentlySelectedItems.some((item) => {
+      if (typeof item === 'object' && item.config) {
+        const otherHost = item.config.host ?? '0.0.0.0';
+        const otherPort = item.config.host_port;
+        const isHostOverlap = otherHost === currentHost || currentHost === '0.0.0.0' || otherHost === '0.0.0.0';
+        return isHostOverlap && Number(otherPort) === Number(currentHostPort);
+      }
+      return false;
+    });
+  };
+
+  // Conflict validation for container name
+  const checkContainerNameConflict = (name: string): boolean => {
+    const cleanName = name.trim().toLowerCase();
+    if (!cleanName) return false;
+    const inInstalled = (installedComponents || []).some(
+      (c) => c.config?.container_name?.toLowerCase() === cleanName
+    );
+    if (inInstalled) return true;
+
+    return currentlySelectedItems.some(
+      (item) => typeof item === 'object' && item.config?.container_name?.toLowerCase() === cleanName
+    );
   };
 
   const handleEnvChange = (name: string, val: string) => {
@@ -168,6 +224,19 @@ export const DockerAppConfigModal: React.FC<DockerAppConfigModalProps> = ({
   };
 
   const handleSave = () => {
+    // 0. Container name validation
+    if (!containerName || !containerName.trim()) {
+      setError('O nome do container Docker é obrigatório.');
+      setActiveTab('network');
+      return;
+    }
+
+    if (checkContainerNameConflict(containerName)) {
+      setError(`Já existe um container Docker com o nome "${containerName}".`);
+      setActiveTab('network');
+      return;
+    }
+
     // 1. Port validations
     if (!hostPort || hostPort < 1 || hostPort > 65535) {
       setError('A porta de acesso (Host) deve ser um número inteiro entre 1 e 65535.');
@@ -194,7 +263,7 @@ export const DockerAppConfigModal: React.FC<DockerAppConfigModalProps> = ({
     for (const schemaItem of envSchema) {
       if (schemaItem.required) {
         const val = envValues[schemaItem.name];
-        if (!val || val.trim() === '') {
+        if (!val || !val.trim()) {
           setError(`A variável de ambiente "${schemaItem.name}" é obrigatória.`);
           setActiveTab('env');
           return;
@@ -220,19 +289,14 @@ export const DockerAppConfigModal: React.FC<DockerAppConfigModalProps> = ({
 
     // Build payload according to specification
     const config: DockerAppConfig = {
+      container_name: containerName.trim(),
       host_port: Number(hostPort),
+      host: bindHost,
+      restart_policy: restartPolicy,
     };
 
     if (containerPortOverride && containerPortOverride.trim() !== '') {
       config.container_port = parseInt(containerPortOverride, 10);
-    }
-
-    if (bindHost !== '0.0.0.0') {
-      config.host = bindHost;
-    }
-
-    if (restartPolicy !== 'unless-stopped') {
-      config.restart_policy = restartPolicy;
     }
 
     if (Object.keys(finalEnv).length > 0) {
@@ -244,6 +308,8 @@ export const DockerAppConfigModal: React.FC<DockerAppConfigModalProps> = ({
   };
 
   const hasConflict = checkPortConflict(hostPort, bindHost);
+  const hasNameConflict = checkContainerNameConflict(containerName);
+  const isSaveDisabled = hasConflict || hasNameConflict || !hostPort || !containerName.trim();
   const requiredEnvCount = envSchema.filter((e) => e.required).length;
 
   return (
@@ -364,6 +430,26 @@ export const DockerAppConfigModal: React.FC<DockerAppConfigModalProps> = ({
             {/* TAB 1: REDE & GERAL */}
             {activeTab === 'network' && (
               <div className="space-y-4 animate-in fade-in duration-200">
+                {/* Docker Container Instance Name */}
+                <div className="space-y-1.5">
+                  <label htmlFor="container_name" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <Package className="size-3.5 text-primary" />
+                    Nome do Container Docker
+                  </label>
+                  <input
+                    id="container_name"
+                    type="text"
+                    value={containerName}
+                    onChange={(e) => setContainerName(e.target.value)}
+                    placeholder="Ex: filegator-app"
+                    required
+                    className="w-full h-9 px-3 rounded-lg border border-border bg-background text-xs font-mono font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                  />
+                  <p className="text-[11px] text-muted-foreground leading-tight">
+                    Nome identificador único da instância da aplicação no Docker.
+                  </p>
+                </div>
+
                 {hasConflict && !error && (
                   <div className="p-3 rounded-xl bg-[#EED202]/10 border border-[#EED202]/30 text-[#EED202] text-xs font-medium flex items-start gap-2">
                     <AlertTriangle className="size-4 shrink-0 mt-0.5 text-[#EED202]" />
@@ -696,7 +782,13 @@ export const DockerAppConfigModal: React.FC<DockerAppConfigModalProps> = ({
               <Button type="button" variant="outline" size="sm" onClick={onClose}>
                 Cancelar
               </Button>
-              <Button type="button" size="sm" onClick={handleSave} className="gap-1.5">
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleSave}
+                disabled={isSaveDisabled}
+                className="gap-1.5"
+              >
                 <Check className="size-3.5" />
                 Salvar Configuração
               </Button>

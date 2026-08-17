@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import PageHeader from '@/components/common/PageHeader';
-import Error from '@/components/common/Error';
+import ErrorAlert from '@/components/common/Error';
 import Loading from '@/components/common/Loading';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { inventoryApi } from '@/api/modules/inventoryApi';
@@ -113,7 +113,7 @@ export const Dashboard: React.FC = () => {
   }
 
   if (isError || !host || !metrics.lastUpdate) {
-    return <Error title="Não foi possível carregar os dados" onRetry={() => { refetchHost(); }} />;
+    return <ErrorAlert title="Não foi possível carregar os dados" onRetry={() => { refetchHost(); }} />;
   }
 
   const ramPercent = host.memory_total_bytes > 0 ? (metrics.memory_used_bytes / host.memory_total_bytes) * 100 : 0;

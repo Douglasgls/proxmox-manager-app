@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   useContainerInventoryById,
   useStartContainer,
@@ -10,7 +10,7 @@ import {
 import { useContainerMetrics } from '@/hooks/websocket/useContainerMetrics';
 import PageHeader from '@/components/common/PageHeader';
 import Loading from '@/components/common/Loading';
-import Error from '@/components/common/Error';
+import ErrorAlert from '@/components/common/Error';
 import StatusBadge from '@/components/common/StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,7 @@ import { AccessSetupButton } from './../components/container-access/AccessSetupB
 import { ContainerComponentsSheet } from '../components/ContainerComponentsSheet';
 
 export const ContainerDetailsPage: React.FC = () => {
+  const navigate = useNavigate();
   const [isComponentsSheetOpen, setIsComponentsSheetOpen] = React.useState(false);
   const { containerId } = useParams<{ containerId: string }>();
   const id = containerId || '';
@@ -79,7 +80,7 @@ export const ContainerDetailsPage: React.FC = () => {
             </Button>
           </Link>
         </div>
-        <Error
+        <ErrorAlert
           title="Erro ao carregar detalhes"
           message={`Não foi possível carregar os dados para o container ID: ${id}`}
           onRetry={handleRefresh}
@@ -166,7 +167,15 @@ export const ContainerDetailsPage: React.FC = () => {
             variant="outline"
             size="sm"
             disabled={isRunning || isLocked || isAnyActionPending}
-            onClick={() => deleteMutation.mutate(inventory?.id || '')}
+            onClick={() => {
+              if (inventory?.id) {
+                deleteMutation.mutate(inventory.id, {
+                  onSuccess: () => {
+                    navigate('/app/containers');
+                  },
+                });
+              }
+            }}
             className="text-red-500 hover:text-red-600 gap-1.5"
           >
             {isDeleting && <Loader2 className="size-4 animate-spin text-red-500" />}

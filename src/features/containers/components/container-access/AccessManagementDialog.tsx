@@ -10,7 +10,7 @@ import { Plus, Loader2 } from 'lucide-react';
 import { useAccessTokens, useCreateAccessToken } from '../../hooks';
 import { AccessTokenTable } from './AccessTokenTable';
 import { AccessTokenDialog } from './AccessTokenDialog';
-import ErrorComponent from '@/components/common/Error';
+import ErrorAlert from '@/components/common/Error';
 
 interface AccessManagementDialogProps {
   isOpen: boolean;
@@ -65,7 +65,7 @@ export const AccessManagementDialog: React.FC<AccessManagementDialogProps> = ({
 
           <div className="flex-1 overflow-y-auto">
             {isError ? (
-              <ErrorComponent
+              <ErrorAlert
                 title="Erro ao carregar tokens"
                 message="Não foi possível listar os acessos remotos deste container."
                 onRetry={() => refetch()}

@@ -14,12 +14,24 @@ export interface ContainerInventory {
 
 export type ComponentInstallStatus = 'PENDING' | 'INSTALLING' | 'INSTALLED' | 'FAILED';
 
+export interface ContainerComponentConfig {
+  container_name?: string;
+  host?: string;
+  host_port?: number;
+  container_port?: number;
+  restart_policy?: string;
+  env?: Record<string, unknown>;
+  volumes?: string[];
+  [key: string]: unknown;
+}
+
 export interface ContainerComponentStatus {
   slug: string;
   name: string;
-  category: string;
+  category: 'native' | 'docker_apps' | string;
   status: ComponentInstallStatus;
   installed_version?: string | null;
+  config?: ContainerComponentConfig | null;
   error?: string | null;
   installed_at?: string | null;
 }
@@ -108,10 +120,11 @@ export interface ContainerActionResponse {
 // ─── Container Creation & Component Config Types ──────────────────────────────────────
 
 export interface DockerAppConfig {
+  container_name?: string;
   host_port: number;
   container_port?: number;
   host?: '0.0.0.0' | '127.0.0.1' | string;
-  restart_policy?: 'unless-stopped' | 'always' | 'no' | string;
+  restart_policy?: 'unless-stopped' | 'always' | 'no' | 'on-failure' | string;
   env?: Record<string, string>;
 }
 

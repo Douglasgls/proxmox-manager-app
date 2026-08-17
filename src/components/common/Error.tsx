@@ -1,21 +1,20 @@
-import React from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
 
-interface ErrorProps {
+export interface ErrorProps {
   title?: string;
   message?: string;
   onRetry?: () => void;
   className?: string;
 }
 
-export const Error: React.FC<ErrorProps> = ({
+export function ErrorAlert({
   title = 'Ocorreu um erro',
   message = 'Não foi possível carregar os dados. Por favor, tente novamente.',
   onRetry,
   className,
-}) => {
+}: ErrorProps) {
   return (
     <div
       className={cn(
@@ -38,5 +37,7 @@ export const Error: React.FC<ErrorProps> = ({
       )}
     </div>
   );
-};
-export default Error;
+}
+
+export const Error = ErrorAlert;
+export default ErrorAlert;
