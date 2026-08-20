@@ -18,9 +18,43 @@ export interface CloudActionResponse {
   message: string;
 }
 
+export interface CloudNode {
+  headscale_node_id?: string | null;
+  machine_id?: string | null;
+  cloud_connection_id?: string | null;
+  tailscale_ip?: string | null;
+  online: boolean;
+  service_running: boolean;
+  node_type: 'container' | 'client' | string;
+  hostname?: string | null;
+  container_id?: string | null;
+  proxmox_container_id?: number | null;
+  container_name?: string | null;
+  last_sync?: string | null;
+}
+
+export interface CloudDetailsResponse {
+  registered: boolean;
+  connected: boolean;
+  jwt_valid: boolean;
+  cloud_environment_id?: string | null;
+  cloud_url?: string | null;
+  registered_at?: string | null;
+  jwt_expires_at?: string | null;
+  total_nodes: number;
+  online_nodes: number;
+  nodes: CloudNode[];
+  message?: string;
+}
+
 export const cloudApi = {
   getStatus: async (): Promise<CloudStatusResponse> => {
     const response = await apiClient.get<CloudStatusResponse>('/cloud/status');
+    return response.data;
+  },
+
+  getDetails: async (): Promise<CloudDetailsResponse> => {
+    const response = await apiClient.get<CloudDetailsResponse>('/cloud/details');
     return response.data;
   },
 

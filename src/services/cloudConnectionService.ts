@@ -1,5 +1,5 @@
 import { cloudApi } from '@/api/modules/cloudApi';
-import type { CloudStatusResponse, CloudActionResponse } from '@/api/modules/cloudApi';
+import type { CloudStatusResponse, CloudDetailsResponse, CloudActionResponse } from '@/api/modules/cloudApi';
 
 export class CloudConnectionService {
   /**
@@ -7,6 +7,13 @@ export class CloudConnectionService {
    */
   public static async getStatus(): Promise<CloudStatusResponse> {
     return await cloudApi.getStatus();
+  }
+
+  /**
+   * Obtém os detalhes completos da integração Cloud e nós VPN sincronizados.
+   */
+  public static async getDetails(): Promise<CloudDetailsResponse> {
+    return await cloudApi.getDetails();
   }
 
   /**
