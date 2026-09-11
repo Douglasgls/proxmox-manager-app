@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # 🔑 ESSENCIAL: Permite que o GitHub Action faça upload do dist.zip na sua Release
     
     steps:
       - name: Checkout do código
@@ -16,7 +18,7 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24' # Versão atualizada do Node para evitar avisos de depreciação
           cache: 'npm'
 
       - name: Instalar dependências
