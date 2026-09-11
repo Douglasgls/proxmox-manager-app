@@ -22,9 +22,16 @@ import {
   ArrowLeft, Cpu, HardDrive, Database, Activity,
   ArrowDownToLine, ArrowUpFromLine, Binary, Clock,
   RefreshCw, Info, FileInput, FileOutput,
-  Loader2, Globe, Package
+  Loader2, Globe, Package, AlertTriangle
 } from 'lucide-react';
-
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 import { AccessSetupButton } from './../components/container-access/AccessSetupButton';
 import { ContainerComponentsSheet } from '../components/ContainerComponentsSheet';
@@ -32,6 +39,7 @@ import { ContainerComponentsSheet } from '../components/ContainerComponentsSheet
 export const ContainerDetailsPage: React.FC = () => {
   const navigate = useNavigate();
   const [isComponentsSheetOpen, setIsComponentsSheetOpen] = React.useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const { containerId } = useParams<{ containerId: string }>();
   const id = containerId || '';
 
@@ -59,7 +67,20 @@ export const ContainerDetailsPage: React.FC = () => {
   const isStopping = stopMutation.isPending && stopMutation.variables === inventory?.id;
   const isRestarting = restartMutation.isPending && restartMutation.variables === inventory?.id;
   const isAnyActionPending = isStarting || isStopping || isRestarting;
-  const isDeleting = deleteMutation.isPending && deleteMutation.variables === inventory?.id;
+  const isDeleting = deleteMutation.isPending;
+
+  const handleDeleteContainer = async () => {
+    const targetId = inventory?.id || id || inventory?.container_id;
+    if (!targetId) return;
+
+    try {
+      await deleteMutation.mutateAsync(targetId);
+      setIsDeleteDialogOpen(false);
+      navigate('/app/containers');
+    } catch (err) {
+      console.error('[ContainerDetailsPage] Falha ao excluir container', err);
+    }
+  };
 
   const handleRefresh = () => {
     refetchInventory();
@@ -167,16 +188,8 @@ export const ContainerDetailsPage: React.FC = () => {
             variant="outline"
             size="sm"
             disabled={isRunning || isLocked || isAnyActionPending}
-            onClick={() => {
-              if (inventory?.id) {
-                deleteMutation.mutate(inventory.id, {
-                  onSuccess: () => {
-                    navigate('/app/containers');
-                  },
-                });
-              }
-            }}
-            className="text-red-500 hover:text-red-600 gap-1.5"
+            onClick={() => setIsDeleteDialogOpen(true)}
+            className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 gap-1.5"
           >
             {isDeleting && <Loader2 className="size-4 animate-spin text-red-500" />}
             Delete
@@ -473,8 +486,44 @@ export const ContainerDetailsPage: React.FC = () => {
         vmid={inventory.container_id}
         components={inventory.components}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-500 flex items-center gap-2 font-bold">
+              <AlertTriangle className="size-5" />
+              Confirmar Exclusão de Container
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground pt-2 text-xs leading-relaxed">
+              Tem certeza que deseja excluir permanentemente o container{' '}
+              <strong className="text-foreground">{inventory.name} (#{inventory.container_id})</strong>?
+              Esta ação removerá todos os volumes, configurações e dados associados, e não poderá ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={deleteMutation.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteContainer}
+              disabled={deleteMutation.isPending}
+              className="gap-2 font-medium"
+            >
+              {deleteMutation.isPending && <Loader2 className="size-4 animate-spin" />}
+              Excluir Definitivamente
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default ContainerDetailsPage;
+

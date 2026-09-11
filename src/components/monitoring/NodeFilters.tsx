@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { CloudNode } from '@/api/modules/cloudApi';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Search, X, Box, Laptop, Wifi, WifiOff, Layers } from 'lucide-react';
+import { SyncNodesButton } from './SyncNodesButton';
+import { filterDuplicateClientNodes } from '@/utils/cloudNodes';
 
 export type FilterTab = 'all' | 'container' | 'client' | 'online' | 'offline';
 
@@ -13,6 +15,11 @@ interface NodeFiltersProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   nodes: CloudNode[];
+  onSync?: () => void | Promise<void>;
+  isSyncing?: boolean;
+  cooldownRemaining?: number;
+  canSync?: boolean;
+  lastSyncTime?: Date | null;
 }
 
 export const NodeFilters: React.FC<NodeFiltersProps> = ({
@@ -21,13 +28,20 @@ export const NodeFilters: React.FC<NodeFiltersProps> = ({
   searchQuery,
   onSearchChange,
   nodes,
+  onSync,
+  isSyncing = false,
+  cooldownRemaining = 0,
+  canSync = true,
+  lastSyncTime,
 }) => {
+  const sanitizedNodes = useMemo(() => filterDuplicateClientNodes(nodes), [nodes]);
+
   const counts = {
-    all: nodes.length,
-    container: nodes.filter((n) => n.node_type === 'container').length,
-    client: nodes.filter((n) => n.node_type === 'client').length,
-    online: nodes.filter((n) => n.online).length,
-    offline: nodes.filter((n) => !n.online).length,
+    all: sanitizedNodes.length,
+    container: sanitizedNodes.filter((n) => n.node_type === 'container').length,
+    client: sanitizedNodes.filter((n) => n.node_type === 'client').length,
+    online: sanitizedNodes.filter((n) => n.online).length,
+    offline: sanitizedNodes.filter((n) => !n.online).length,
   };
 
   const tabs: { key: FilterTab; label: string; count: number; icon: React.ElementType }[] = [
@@ -70,25 +84,38 @@ export const NodeFilters: React.FC<NodeFiltersProps> = ({
         })}
       </div>
 
-      {/* Input de Busca */}
-      <div className="relative min-w-[240px] md:w-72">
-        <Search className="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-        <Input
-          type="text"
-          placeholder="Buscar por hostname, IP ou ID..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="h-8 pl-8 pr-8 text-xs bg-background/50 border-border/70 focus:bg-background"
-        />
-        {searchQuery && (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="size-5 p-0 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            onClick={() => onSearchChange('')}
-          >
-            <X className="size-3" />
-          </Button>
+      {/* Controles da Direita: Busca e Sincronização */}
+      <div className="flex items-center gap-2">
+        <div className="relative min-w-[200px] md:w-64">
+          <Search className="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input
+            type="text"
+            placeholder="Buscar por hostname, IP, tag ou ID..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="h-8 pl-8 pr-8 text-xs bg-background/50 border-border/70 focus:bg-background"
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="size-5 p-0 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              onClick={() => onSearchChange('')}
+            >
+              <X className="size-3" />
+            </Button>
+          )}
+        </div>
+
+        {onSync && (
+          <SyncNodesButton
+            onSync={onSync}
+            isSyncing={isSyncing}
+            cooldownRemaining={cooldownRemaining}
+            canSync={canSync}
+            lastSyncTime={lastSyncTime}
+            size="sm"
+          />
         )}
       </div>
     </div>
@@ -96,3 +123,4 @@ export const NodeFilters: React.FC<NodeFiltersProps> = ({
 };
 
 export default NodeFilters;
+

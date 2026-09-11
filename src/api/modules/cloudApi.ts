@@ -27,10 +27,20 @@ export interface CloudNode {
   service_running: boolean;
   node_type: 'container' | 'client' | string;
   hostname?: string | null;
+  name?: string | null;
   container_id?: string | null;
   proxmox_container_id?: number | null;
   container_name?: string | null;
   last_sync?: string | null;
+  machine_key?: string | null;
+  node_key?: string | null;
+  user?: string | null;
+  tags?: string[] | null;
+  ephemeral?: boolean;
+  last_seen?: string | null;
+  expiration?: string | null;
+  expired?: boolean;
+  api_local_container_id?: string | number | null;
 }
 
 export interface CloudDetailsResponse {
@@ -69,4 +79,10 @@ export const cloudApi = {
     const response = await apiClient.post<CloudActionResponse>('/cloud/reconnect');
     return response.data;
   },
+
+  syncNodes: async (): Promise<CloudActionResponse> => {
+    const response = await apiClient.post<CloudActionResponse>('/cloud/sync');
+    return response.data;
+  },
 };
+

@@ -39,18 +39,47 @@ export const NodeTableRow: React.FC<NodeTableRowProps> = ({ node, onSelectNode }
       {/* Node / Hostname */}
       <TableCell className="py-3">
         <div className="flex items-center gap-2.5">
-          <div className={`p-1.5 rounded-lg ${isContainer ? 'bg-blue-500/10 text-blue-500' : 'bg-purple-500/10 text-purple-500'}`}>
+          <div className={`p-1.5 rounded-lg shrink-0 ${isContainer ? 'bg-blue-500/10 text-blue-500' : 'bg-purple-500/10 text-purple-500'}`}>
             {isContainer ? <Box className="size-4" /> : <Laptop className="size-4" />}
           </div>
-          <div>
-            <span className="font-semibold text-xs text-foreground block group-hover:text-primary transition-colors">
-              {node.container_name || node.hostname || 'Sem identificação'}
-            </span>
-            {node.hostname && node.container_name && node.hostname !== node.container_name && (
-              <span className="text-[10px] text-muted-foreground font-mono block">
-                {node.hostname}
+          <div className="space-y-0.5 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-semibold text-xs text-foreground truncate group-hover:text-primary transition-colors">
+                {node.container_name || node.name || node.hostname || 'Sem identificação'}
               </span>
-            )}
+              {node.ephemeral && (
+                <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30">
+                  Efêmero
+                </Badge>
+              )}
+              {node.expired && (
+                <Badge variant="destructive" className="text-[9px] px-1 py-0 h-3.5">
+                  Expirado
+                </Badge>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {node.hostname && (node.container_name || node.name) && node.hostname !== (node.container_name || node.name) && (
+                <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[150px]">
+                  {node.hostname}
+                </span>
+              )}
+              {node.tags && node.tags.length > 0 && (
+                <div className="flex items-center gap-1">
+                  {node.tags.slice(0, 2).map((tag, idx) => (
+                    <Badge key={idx} variant="secondary" className="text-[9px] px-1 py-0 h-3.5 font-mono text-muted-foreground">
+                      {tag}
+                    </Badge>
+                  ))}
+                  {node.tags.length > 2 && (
+                    <span className="text-[9px] text-muted-foreground font-mono">
+                      +{node.tags.length - 2}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </TableCell>

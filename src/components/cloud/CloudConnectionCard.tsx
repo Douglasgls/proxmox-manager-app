@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
-import { Cloud, CloudOff, CloudAlert, RefreshCw, KeyRound, CheckCircle2, ShieldCheck, Activity } from 'lucide-react';
+import { Cloud, CloudOff, CloudAlert, RefreshCw, KeyRound, CheckCircle2, ShieldCheck, Activity, Eye, EyeOff } from 'lucide-react';
 import { extractErrorMessage } from '@/utils/error';
 
 export const CloudConnectionCard: React.FC = () => {
@@ -23,6 +23,7 @@ export const CloudConnectionCard: React.FC = () => {
   } = useCloudConnection();
 
   const [tokenInput, setTokenInput] = useState('');
+  const [showToken, setShowToken] = useState(false);
   const [tokenError, setTokenError] = useState<string | null>(null);
   // const [connectedTimeSeconds, setConnectedTimeSeconds] = useState(0);
 
@@ -156,14 +157,26 @@ export const CloudConnectionCard: React.FC = () => {
                   <KeyRound className="size-3.5 text-muted-foreground" />
                   Environment Token
                 </label>
-                <Input
-                  type="password"
-                  placeholder="Insira seu Environment Token"
-                  value={tokenInput}
-                  onChange={(e) => setTokenInput(e.target.value)}
-                  disabled={isRegistering}
-                  className="h-8 text-xs font-mono"
-                />
+                <div className="relative flex items-center">
+                  <Input
+                    type={showToken ? 'text' : 'password'}
+                    placeholder="Insira seu Environment Token"
+                    value={tokenInput}
+                    onChange={(e) => setTokenInput(e.target.value)}
+                    disabled={isRegistering}
+                    className="h-8 text-xs font-mono pr-8"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => setShowToken(!showToken)}
+                    className="absolute right-1 text-muted-foreground hover:text-foreground size-6"
+                    title={showToken ? 'Ocultar token' : 'Exibir token'}
+                  >
+                    {showToken ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                  </Button>
+                </div>
               </div>
 
               {(tokenError || registerError) && (
@@ -199,14 +212,14 @@ export const CloudConnectionCard: React.FC = () => {
                 <span className="text-[10px] text-muted-foreground block font-medium uppercase tracking-wider">Status</span>
                 <Badge variant="offline" className="mt-1 h-5 text-[10px] px-1.5 gap-1">
                   <span className="size-1.5 rounded-full bg-red-500" />
-                  Offline
+                  Desconectado
                 </Badge>
               </div>
 
               <div className="p-2.5 rounded-lg bg-muted/30 border border-border/60">
                 <span className="text-[10px] text-muted-foreground block font-medium uppercase tracking-wider">JWT</span>
-                <span className="text-xs font-semibold text-emerald-500 mt-1 flex items-center gap-1">
-                  <ShieldCheck className="size-3.5" />
+                <span className={`text-xs font-semibold mt-1 flex items-center gap-1 ${status?.jwt_valid === false ? 'text-destructive' : 'text-emerald-500'}`}>
+                  {status?.jwt_valid === false ? <CloudAlert className="size-3.5" /> : <ShieldCheck className="size-3.5" />}
                   {status?.jwt_valid === false ? 'Expirado' : 'Válido'}
                 </span>
               </div>

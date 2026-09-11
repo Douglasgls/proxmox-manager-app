@@ -13,9 +13,8 @@ import Dashboard from '@/pages/Dashboard';
 import Containers from '@/pages/Containers';
 import ContainerDetails from '@/features/containers/pages/ContainerDetailsPage';
 import ContainerConsole from '@/pages/containers/console';
-import Jobs from '@/pages/Jobs';
 import Monitoring from '@/pages/Monitoring';
-import Inventory from '@/pages/Inventory';
+import Jobs from '@/pages/Jobs';
 import Settings from '@/pages/Settings';
 
 const ContainerRedirect: React.FC = () => {
@@ -73,16 +72,16 @@ export const router = createBrowserRouter([
             element: <ContainerConsole />,
           },
           {
-            path: 'jobs',
-            element: <Jobs />,
-          },
-          {
             path: 'monitoring',
             element: <Monitoring />,
           },
           {
+            path: 'jobs',
+            element: <Jobs />,
+          },
+          {
             path: 'inventory',
-            element: <Inventory />,
+            element: <Navigate to="/app/dashboard" replace />,
           },
           {
             path: 'settings',

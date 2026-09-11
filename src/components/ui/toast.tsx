@@ -33,7 +33,13 @@ export const ToastContainer: React.FC = () => {
               ) : (
                 <CheckCircle2 className="size-4 shrink-0 text-white" />
               )}
-              <span>{toast.message}</span>
+              <span>
+                {typeof toast.message === 'string'
+                  ? toast.message
+                  : typeof toast.message === 'object'
+                  ? JSON.stringify(toast.message)
+                  : String(toast.message || '')}
+              </span>
             </div>
 
             <button

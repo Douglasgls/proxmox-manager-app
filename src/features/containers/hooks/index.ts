@@ -62,12 +62,65 @@ export const useRestartContainer = () => {
   });
 };
 
+import type { ContainerInventoryResponse } from '../types/index';
+import { useToastStore } from '@/utils/clipboard';
+
 export const useDeleteContainer = () => {
   const queryClient = useQueryClient();
+  const showToast = useToastStore((state) => state.showToast);
+
   return useMutation({
     mutationFn: (id: number | string) => containerMonitoringApi.delete(id),
-    onSuccess: () => {
+    onMutate: async (id: number | string) => {
+      // Cancel ongoing queries to prevent overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ['containers', 'inventory'] });
+      await queryClient.cancelQueries({ queryKey: ['containers', 'metrics'] });
+
+      // Snapshot previous value
+      const previousInventory = queryClient.getQueryData<ContainerInventoryResponse>(['containers', 'inventory']);
+
+      // Optimistically remove container from list
+      if (previousInventory?.containers) {
+        queryClient.setQueryData<ContainerInventoryResponse>(['containers', 'inventory'], {
+          ...previousInventory,
+          containers: previousInventory.containers.filter(
+            (c) => c.id !== id && String(c.id) !== String(id) && String(c.container_id) !== String(id)
+          ),
+          total: Math.max(0, (previousInventory.total ?? previousInventory.containers.length) - 1),
+        });
+      }
+
+      return { previousInventory };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previousInventory) {
+        queryClient.setQueryData(['containers', 'inventory'], context.previousInventory);
+      }
+      showToast('Erro ao excluir container.', 'error');
+    },
+    onSuccess: (_data, id) => {
+      // Ensure the container is removed from any container cache
+      queryClient.setQueryData<ContainerInventoryResponse>(['containers', 'inventory'], (prev) => {
+        if (!prev?.containers) return prev;
+        return {
+          ...prev,
+          containers: prev.containers.filter(
+            (c) => c.id !== id && String(c.id) !== String(id) && String(c.container_id) !== String(id)
+          ),
+          total: Math.max(0, (prev.total ?? prev.containers.length) - 1),
+        };
+      });
+
+      // Remove specific container queries from cache
+      queryClient.removeQueries({ queryKey: ['containers', id] });
+      queryClient.removeQueries({ queryKey: ['containers', String(id)] });
+
+      // Invalidate queries to sync with backend
+      queryClient.invalidateQueries({ queryKey: ['containers', 'inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['containers', 'metrics'] });
       queryClient.invalidateQueries({ queryKey: ['containers'] });
+
+      showToast('Container excluído com sucesso!', 'success');
     },
   });
 };

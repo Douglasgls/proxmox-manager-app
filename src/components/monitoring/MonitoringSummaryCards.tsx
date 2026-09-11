@@ -2,6 +2,7 @@ import React from 'react';
 import type { CloudDetailsResponse } from '@/api/modules/cloudApi';
 import { Card, CardContent } from '@/components/ui/card';
 import { Network, Wifi, Box, Laptop, WifiOff } from 'lucide-react';
+import { filterDuplicateClientNodes } from '@/utils/cloudNodes';
 
 interface MonitoringSummaryCardsProps {
   data?: CloudDetailsResponse;
@@ -12,10 +13,9 @@ export const MonitoringSummaryCards: React.FC<MonitoringSummaryCardsProps> = ({
   data,
   isLoading,
 }) => {
-  const totalNodes = data?.total_nodes ?? 0;
-  const onlineNodes = data?.online_nodes ?? 0;
-  
-  const nodes = data?.nodes || [];
+  const nodes = filterDuplicateClientNodes(data?.nodes || []);
+  const totalNodes = nodes.length;
+  const onlineNodes = nodes.filter((n) => n.online).length;
   const containersCount = nodes.filter((n) => n.node_type === 'container').length;
   const clientsCount = nodes.filter((n) => n.node_type === 'client').length;
   const offlineNodes = Math.max(0, totalNodes - onlineNodes);

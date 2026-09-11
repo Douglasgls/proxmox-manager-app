@@ -170,7 +170,7 @@ export const ContainerTable: React.FC<ContainerTableProps> = ({ data, isLoading 
                 <TableRow
                   key={row.id || rowIndex}
                   className="hover:bg-muted/40 cursor-pointer transition-colors duration-150 border-b border-border/50 group"
-                  onClick={() => navigate(`/containers/${row.id}`)}
+                  onClick={() => navigate(`/app/containers/${row.id}`)}
                 >
                   <TableCell className="w-24 text-center align-middle font-medium">
                     <StatusBadge type="container" status={getContainerStatus(row)} />

@@ -16,8 +16,14 @@ export const useToastStore = create<ToastStore>((set) => ({
   toasts: [],
   showToast: (message, type = 'success') => {
     const id = Math.random().toString(36).substring(2, 9);
+    const safeMessage =
+      typeof message === 'string'
+        ? message
+        : typeof message === 'object'
+        ? JSON.stringify(message)
+        : String(message || '');
     set((state) => ({
-      toasts: [...state.toasts, { id, message, type }],
+      toasts: [...state.toasts, { id, message: safeMessage, type }],
     }));
 
     // Remove automaticamente após 3 segundos

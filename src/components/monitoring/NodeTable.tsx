@@ -15,6 +15,7 @@ import { NodeFilters, type FilterTab } from './NodeFilters';
 import { NodeTableRow } from './NodeTableRow';
 import { NodeDetailsSheet } from './NodeDetailsSheet';
 import { Network, AlertCircle, RefreshCw, Layers } from 'lucide-react';
+import { filterDuplicateClientNodes } from '@/utils/cloudNodes';
 
 interface NodeTableProps {
   nodes: CloudNode[];
@@ -22,6 +23,11 @@ interface NodeTableProps {
   isError: boolean;
   error: unknown;
   onRefresh: () => void;
+  onSync?: () => void | Promise<void>;
+  isSyncing?: boolean;
+  cooldownRemaining?: number;
+  canSync?: boolean;
+  lastSyncTime?: Date | null;
 }
 
 export const NodeTable: React.FC<NodeTableProps> = ({
@@ -30,6 +36,11 @@ export const NodeTable: React.FC<NodeTableProps> = ({
   isError,
   error,
   onRefresh,
+  onSync,
+  isSyncing,
+  cooldownRemaining,
+  canSync,
+  lastSyncTime,
 }) => {
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,9 +52,14 @@ export const NodeTable: React.FC<NodeTableProps> = ({
     setIsSheetOpen(true);
   };
 
+  // Garante a desduplicação dos nós: se houver mesmo nome e ipv4, lista apenas o container
+  const sanitizedNodes = useMemo(() => {
+    return filterDuplicateClientNodes(nodes);
+  }, [nodes]);
+
   // Filtragem otimizada por computed / useMemo
   const filteredNodes = useMemo(() => {
-    return nodes.filter((node) => {
+    return sanitizedNodes.filter((node) => {
       // 1. Filtro por Aba
       if (activeTab === 'container' && node.node_type !== 'container') return false;
       if (activeTab === 'client' && node.node_type !== 'client') return false;
@@ -75,7 +91,7 @@ export const NodeTable: React.FC<NodeTableProps> = ({
 
       return true;
     });
-  }, [nodes, activeTab, searchQuery]);
+  }, [sanitizedNodes, activeTab, searchQuery]);
 
   return (
     <div className="space-y-4">
@@ -85,7 +101,12 @@ export const NodeTable: React.FC<NodeTableProps> = ({
         onTabChange={setActiveTab}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        nodes={nodes}
+        nodes={sanitizedNodes}
+        onSync={onSync}
+        isSyncing={isSyncing}
+        cooldownRemaining={cooldownRemaining}
+        canSync={canSync}
+        lastSyncTime={lastSyncTime}
       />
 
       {/* Estado 1: Erro no carregamento da API */}

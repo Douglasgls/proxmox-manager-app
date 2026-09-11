@@ -10,6 +10,11 @@ export const Monitoring: React.FC = () => {
     isError,
     error,
     refetch,
+    syncNodes,
+    isSyncing,
+    cooldownRemaining,
+    canSync,
+    lastSyncTime,
   } = useCloudDetails();
 
   const nodes = data?.nodes || [];
@@ -18,7 +23,7 @@ export const Monitoring: React.FC = () => {
     <div className="space-y-6 pb-8">
       <PageHeader
         title="Monitoring"
-        description="Monitoramento em tempo real do ambiente Cloud, conexões VPN e containers publicados."
+        description="Monitoramento em tempo real do ambiente Cloud, conexões VPN e nós Headscale sincronizados."
       />
 
       {/* Seção Principal: Lista de Nodes e Recursos VPN/Containers */}
@@ -29,6 +34,11 @@ export const Monitoring: React.FC = () => {
           isError={isError}
           error={error}
           onRefresh={() => refetch()}
+          onSync={syncNodes}
+          isSyncing={isSyncing}
+          cooldownRemaining={cooldownRemaining}
+          canSync={canSync}
+          lastSyncTime={lastSyncTime}
         />
       </div>
     </div>
@@ -36,3 +46,5 @@ export const Monitoring: React.FC = () => {
 };
 
 export default Monitoring;
+
+

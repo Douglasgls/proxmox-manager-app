@@ -54,3 +54,39 @@ export interface JobUpdate {
   endtime?: number;
   progress?: number;
 }
+
+export interface NodeSyncRequest {
+  type: 'node.sync.request';
+  request_id?: string;
+}
+
+export interface HeadscaleSyncNode {
+  headscale_node_id: string;
+  hostname: string;
+  name: string;
+  machine_key: string;
+  node_key: string;
+  user: string;
+  tags?: string[];
+  tailscale_ip: string;
+  ephemeral: boolean;
+  last_seen: string;
+  expiration: string;
+  online: boolean;
+  expired: boolean;
+  api_local_container_id?: string | number | null;
+}
+
+export interface NodeSyncResponsePayload {
+  nodes: HeadscaleSyncNode[];
+}
+
+export interface NodeSyncResponse {
+  request_id?: string;
+  type: 'node.sync.response';
+  success: boolean;
+  payload?: NodeSyncResponsePayload;
+  error?: string;
+  message?: string;
+}
+

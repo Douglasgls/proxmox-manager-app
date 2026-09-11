@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { inventoryApi } from '@/api/modules/inventoryApi';
+import { useAgentConfig } from '@/hooks/useAgentConfig';
 import { cn } from '@/lib/utils';
 import { WIZARD_STEPS, DEFAULT_CONTAINER_VALUES } from '../constants';
 import type { WizardStepId } from '../constants';
@@ -48,6 +49,9 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
   const [currentStep, setCurrentStep] = useState<WizardStepId>('basic');
   const currentStepIndex = WIZARD_STEPS.findIndex((s) => s.id === currentStep);
 
+  // Configuração padrão do Agent (Proxmox VE)
+  const { config: agentConfig } = useAgentConfig();
+
   // Busca dados reais do host e componentes
   const { data: hostInventory } = useQuery({
     queryKey: ['host', 'inventory'],
@@ -81,13 +85,20 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
   // Estado para o storage de destino selecionado
   const [selectedStorageName, setSelectedStorageName] = useState<string>('');
 
-  // Define o primeiro storage válido como padrão assim que carregar a lista
+  // Define o storage padrão: usa agentConfig.default_storage se configurado, ou o primeiro válido
   useEffect(() => {
     if (containerStorages.length > 0 && !selectedStorageName) {
-      const defaultName = containerStorages[0].name || containerStorages[0].storage || '';
-      setSelectedStorageName(defaultName);
+      if (
+        agentConfig?.default_storage &&
+        containerStorages.some((s) => (s.name || s.storage) === agentConfig.default_storage)
+      ) {
+        setSelectedStorageName(agentConfig.default_storage);
+      } else {
+        const defaultName = containerStorages[0].name || containerStorages[0].storage || '';
+        setSelectedStorageName(defaultName);
+      }
     }
-  }, [containerStorages, selectedStorageName]);
+  }, [containerStorages, selectedStorageName, agentConfig]);
 
   const selectedStorage = useMemo(() => {
     return containerStorages.find((s) => (s.name || s.storage) === selectedStorageName);
@@ -114,6 +125,29 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
   const [name, setName] = useState(DEFAULT_CONTAINER_VALUES.name);
   const [password, setPassword] = useState('');
   const [imageName, setImageName] = useState(DEFAULT_CONTAINER_VALUES.image_name);
+
+  // Define o template padrão: usa agentConfig.default_template se configurado, ou o primeiro disponível
+  useEffect(() => {
+    if (templates.length > 0) {
+      if (agentConfig?.default_template) {
+        const found = templates.find(
+          (t) =>
+            t.filename === agentConfig.default_template ||
+            t.name === agentConfig.default_template ||
+            agentConfig.default_template.includes(t.filename)
+        );
+        if (found) {
+          setImageName(found.filename);
+          return;
+        }
+      }
+      // Se imageName não foi selecionado ainda ou não está na lista de templates
+      if (!imageName || !templates.some((t) => t.filename === imageName)) {
+        setImageName(templates[0].filename);
+      }
+    }
+  }, [templates, agentConfig]);
+
   const [cpu, setCpu] = useState(DEFAULT_CONTAINER_VALUES.cpu);
   const [memoryMb, setMemoryMb] = useState(DEFAULT_CONTAINER_VALUES.memory_mb);
   const [diskGb, setDiskGb] = useState(DEFAULT_CONTAINER_VALUES.disk_gb);

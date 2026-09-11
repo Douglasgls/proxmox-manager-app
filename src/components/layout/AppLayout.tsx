@@ -1,6 +1,7 @@
 import React from 'react';
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useAgentStatus } from '@/hooks/useAgentStatus';
 import { Loading } from '../common/Loading';
 import ErrorBoundary from '../common/ErrorBoundary';
 import Sidebar from './Sidebar';
@@ -8,6 +9,8 @@ import Header from './Header';
 
 export const AppLayout: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
+  const { isNotConfigured } = useAgentStatus();
+  const location = useLocation();
 
   // Se estiver validando o token ou buscando usuário
   if (isLoading) {
@@ -17,6 +20,11 @@ export const AppLayout: React.FC = () => {
   // Redireciona se não estiver logado
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Se o Agent não estiver configurado, força a navegação para a tela de Configurações
+  if (isNotConfigured && location.pathname !== '/app/settings') {
+    return <Navigate to="/app/settings" replace />;
   }
 
   return (

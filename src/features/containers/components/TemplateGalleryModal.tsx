@@ -15,10 +15,12 @@ import {
   AlertCircle,
   Package,
   Check,
+  Star,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatBytes } from '@/utils/bytes';
+import { useAgentConfig } from '@/hooks/useAgentConfig';
 import {
   useAvailableTemplates,
   useInstalledTemplates,
@@ -137,10 +139,14 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isFilterOpen]);
 
-  // Controle de estado do download
+  // Controle de estado do download e configuração de template padrão
   const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [settingDefaultKey, setSettingDefaultKey] = useState<string | null>(null);
+
+  // Agent Config para definir template padrão do cluster
+  const { config, saveConfig, isSaving: isSavingConfig } = useAgentConfig();
 
   // Queries
   const {
@@ -183,6 +189,45 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
       return matchesSearch && matchesDistro;
     });
   }, [activeTab, availableTemplates, installedTemplates, searchQuery, selectedDistro]);
+
+  // Manipulador para definir ou desmarcar template padrão do cluster
+  const handleToggleDefault = async (template: TemplateImage) => {
+    const key = template.filename || template.name;
+    const defaultTemplateStr =
+      typeof config?.default_template === 'string' ? config.default_template : '';
+    const isCurrentDefault =
+      Boolean(defaultTemplateStr) &&
+      (defaultTemplateStr === key ||
+        defaultTemplateStr === template.name ||
+        (Boolean(key) && defaultTemplateStr.includes(key)) ||
+        (Boolean(template.name) && defaultTemplateStr.includes(template.name)));
+
+    const newDefault = isCurrentDefault ? undefined : key;
+    setSettingDefaultKey(key);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      await saveConfig({
+        proxmox_host: config?.proxmox_host || '',
+        proxmox_user: config?.proxmox_user || '',
+        proxmox_token_name: config?.proxmox_token_name || '',
+        proxmox_token_value: '',
+        proxmox_node: config?.proxmox_node || '',
+        default_storage: config?.default_storage || null,
+        default_template: newDefault ?? null,
+      });
+      if (newDefault) {
+        setSuccessMessage(`Template "${template.name || key}" definido como padrão do cluster!`);
+      } else {
+        setSuccessMessage(`Template padrão desmarcado.`);
+      }
+    } catch (err: any) {
+      setErrorMessage(extractErrorMessage(err, 'Erro ao salvar template padrão.'));
+    } finally {
+      setSettingDefaultKey(null);
+    }
+  };
 
   // Manipulador de Download
   const handleDownload = async (template: TemplateImage) => {
@@ -316,6 +361,11 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
                 <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
                   {installedTemplates.length}
                 </Badge>
+                {Boolean(config?.default_template) && (
+                  <span title={`Template padrão ativo: ${config?.default_template}`}>
+                    <Star className="size-3 fill-amber-400 text-amber-400" />
+                  </span>
+                )}
               </button>
             </div>
 
@@ -466,6 +516,15 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
                   const isInstalled =
                     template.downloaded || installedFilenamesSet.has(key);
                   const isDownloading = downloadingKey === key;
+                  const defaultTemplateStr =
+                    typeof config?.default_template === 'string' ? config.default_template : '';
+                  const isDefault =
+                    Boolean(defaultTemplateStr) &&
+                    (defaultTemplateStr === key ||
+                      defaultTemplateStr === template.name ||
+                      (Boolean(key) && defaultTemplateStr.includes(key)) ||
+                      (Boolean(template.name) && defaultTemplateStr.includes(template.name)));
+                  const isSettingThisDefault = settingDefaultKey === key;
 
                   return (
                     <div
@@ -473,7 +532,8 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
                       className={cn(
                         'flex flex-col justify-between p-4 rounded-xl border transition-all duration-200',
                         'bg-card/80 hover:bg-card hover:shadow-md border-border/60 hover:border-primary/40',
-                        isDownloading && 'border-primary/50 bg-primary/5 shadow-md'
+                        isDownloading && 'border-primary/50 bg-primary/5 shadow-md',
+                        isDefault && 'border-amber-500/60 bg-amber-500/[0.04] shadow-sm hover:border-amber-500'
                       )}
                     >
                       <div>
@@ -488,12 +548,49 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
                               {template.name || template.distribution}
                             </h3>
                           </div>
-                          <Badge
-                            variant="outline"
-                            className={cn('text-[10px] font-semibold px-2 py-0.5 border shrink-0', distroInfo.badgeClass)}
-                          >
-                            {distroInfo.name}
-                          </Badge>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {/* Estrela / Botão de Padrão no Topo para templates instalados */}
+                            {isInstalled && (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleDefault(template)}
+                                disabled={isSavingConfig || isSettingThisDefault}
+                                className={cn(
+                                  'p-1 px-1.5 rounded-md transition-all flex items-center gap-1 text-[11px] font-medium border',
+                                  isDefault
+                                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/30'
+                                    : 'border-transparent text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 hover:border-amber-500/20'
+                                )}
+                                title={
+                                  isDefault
+                                    ? 'Template padrão do cluster (Clique para desmarcar)'
+                                    : 'Definir como template padrão para novos containers'
+                                }
+                              >
+                                {isSettingThisDefault ? (
+                                  <Loader2 className="size-3.5 animate-spin text-amber-500" />
+                                ) : (
+                                  <Star
+                                    className={cn(
+                                      'size-3.5 transition-transform hover:scale-110',
+                                      isDefault
+                                        ? 'fill-amber-400 text-amber-400'
+                                        : 'text-muted-foreground hover:text-amber-400'
+                                    )}
+                                  />
+                                )}
+                                {isDefault && <span className="font-semibold text-[10px]">Padrão</span>}
+                              </button>
+                            )}
+
+                            <Badge
+                              variant="outline"
+                              className={cn('text-[10px] font-semibold px-2 py-0.5 border shrink-0', distroInfo.badgeClass)}
+                            >
+                              {distroInfo.name}
+                            </Badge>
+                          </div>
                         </div>
 
                         {/* Detalhes técnicos */}
@@ -542,21 +639,57 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
 
                       {/* Footer do Card com Botões */}
                       <div className="flex items-center justify-between pt-1">
-                        {isInstalled ? (
-                          <div className="flex items-center gap-1.5 text-xs text-green-500 font-semibold bg-green-500/10 px-2.5 py-1 rounded-lg border border-green-500/20">
-                            <CheckCircle2 className="size-3.5" />
-                            Instalado
-                          </div>
-                        ) : (
-                          <div />
-                        )}
+                        <div className="flex items-center gap-2">
+                          {isInstalled ? (
+                            <div className="flex items-center gap-1.5 text-xs text-green-500 font-semibold bg-green-500/10 px-2.5 py-1 rounded-lg border border-green-500/20">
+                              <CheckCircle2 className="size-3.5" />
+                              Instalado
+                            </div>
+                          ) : (
+                            <div />
+                          )}
+
+                          {/* Botão de Definir Padrão na Aba Instalados */}
+                          {isInstalled && activeTab === 'installed' && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={isDefault ? 'secondary' : 'outline'}
+                              onClick={() => handleToggleDefault(template)}
+                              disabled={isSavingConfig || isSettingThisDefault}
+                              className={cn(
+                                'h-8 text-xs gap-1.5 px-2.5 transition-all',
+                                isDefault
+                                  ? 'border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 font-semibold'
+                                  : 'text-muted-foreground hover:text-amber-500 hover:border-amber-500/30'
+                              )}
+                              title={
+                                isDefault
+                                  ? 'Template padrão para novos containers (Clique para remover)'
+                                  : 'Definir este template como padrão'
+                              }
+                            >
+                              {isSettingThisDefault ? (
+                                <Loader2 className="size-3.5 animate-spin text-amber-500" />
+                              ) : (
+                                <Star
+                                  className={cn(
+                                    'size-3.5',
+                                    isDefault ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground'
+                                  )}
+                                />
+                              )}
+                              {isDefault ? 'Template Padrão' : 'Definir Padrão'}
+                            </Button>
+                          )}
+                        </div>
 
                         <div className="flex items-center gap-2 ml-auto">
                           {isInstalled && activeTab === 'installed' && (
                             <Button
                               size="sm"
                               variant="destructive"
-                              disabled={deleteMutation.isPending || isDownloading}
+                              disabled={deleteMutation.isPending || isDownloading || isSavingConfig}
                               onClick={() => setDeleteConfirmTemplate(template)}
                               className="h-8 text-xs gap-1.5 px-3"
                             >
@@ -568,7 +701,7 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
                           {!isInstalled && (
                             <Button
                               size="sm"
-                              disabled={downloadMutation.isPending || isDownloading}
+                              disabled={downloadMutation.isPending || isDownloading || isSavingConfig}
                               onClick={() => handleDownload(template)}
                               className={cn(
                                 'h-8 text-xs gap-1.5 px-3 transition-all',

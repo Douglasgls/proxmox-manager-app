@@ -52,6 +52,12 @@ export const formatRelativeTime = (isoString?: string | null): string => {
   return `Há ${diffDays} dia${diffDays > 1 ? 's' : ''}`;
 };
 
+export const truncateKey = (key?: string | null, startChars = 8, endChars = 6): string => {
+  if (!key) return '-';
+  if (key.length <= startChars + endChars + 3) return key;
+  return `${key.slice(0, startChars)}...${key.slice(-endChars)}`;
+};
+
 import { copyToClipboard } from '@/utils/clipboard';
 
 const FIELD_LABELS: Record<string, string> = {
@@ -60,6 +66,8 @@ const FIELD_LABELS: Record<string, string> = {
   container_id: 'Container UUID',
   machine_id: 'Machine ID',
   cloud_conn_id: 'Cloud Connection ID',
+  machine_key: 'Machine Key',
+  node_key: 'Node Key',
 };
 
 export const NodeDetailsSheet: React.FC<NodeDetailsSheetProps> = ({
@@ -210,6 +218,100 @@ export const NodeDetailsSheet: React.FC<NodeDetailsSheetProps> = ({
 
           <Separator />
 
+          {/* Seção Técnica Headscale / VPN */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Key className="size-3.5 text-primary" />
+              Metadados Headscale
+            </h4>
+            <div className="space-y-2 text-xs">
+              {node.user && (
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50">
+                  <span className="text-muted-foreground">Usuário (Tenant):</span>
+                  <span className="font-mono text-[11px] font-semibold text-foreground truncate max-w-[200px]" title={node.user}>
+                    {node.user}
+                  </span>
+                </div>
+              )}
+
+              {node.node_key && (
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50">
+                  <div className="min-w-0 pr-2">
+                    <span className="text-muted-foreground block text-[10px]">Node Key</span>
+                    <span
+                      className="font-mono text-[11px] font-semibold text-foreground truncate block cursor-help"
+                      title={node.node_key}
+                    >
+                      {truncateKey(node.node_key, 10, 8)}
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0 size-7"
+                    title="Copiar Node Key completo"
+                    onClick={() => handleCopy(node.node_key!, 'node_key')}
+                  >
+                    {copiedField === 'node_key' ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
+                  </Button>
+                </div>
+              )}
+
+              {node.machine_key && (
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50">
+                  <div className="min-w-0 pr-2">
+                    <span className="text-muted-foreground block text-[10px]">Machine Key</span>
+                    <span
+                      className="font-mono text-[11px] font-semibold text-foreground truncate block cursor-help"
+                      title={node.machine_key}
+                    >
+                      {truncateKey(node.machine_key, 10, 8)}
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0 size-7"
+                    title="Copiar Machine Key completo"
+                    onClick={() => handleCopy(node.machine_key!, 'machine_key')}
+                  >
+                    {copiedField === 'machine_key' ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
+                  </Button>
+                </div>
+              )}
+
+              {node.tags && node.tags.length > 0 && (
+                <div className="p-2.5 rounded-lg bg-muted/30 border border-border/50 space-y-1.5">
+                  <span className="text-muted-foreground block text-[10px]">Tags de Acesso</span>
+                  <div className="flex flex-wrap gap-1">
+                    {node.tags.map((tag, idx) => (
+                      <Badge key={idx} variant="secondary" className="font-mono text-[10px]">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="p-2 rounded-lg bg-muted/20 border border-border/40">
+                  <span className="text-[10px] text-muted-foreground block">Efêmero</span>
+                  <span className="font-semibold text-foreground">
+                    {node.ephemeral ? 'Sim' : 'Não'}
+                  </span>
+                </div>
+                <div className="p-2 rounded-lg bg-muted/20 border border-border/40">
+                  <span className="text-[10px] text-muted-foreground block">Expiração</span>
+                  <span className="font-mono text-[11px] text-foreground">
+                    {node.expiration && node.expiration !== 'N/A' ? node.expiration : 'Sem expiração'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
           {/* Dados Específicos do Tipo */}
           {isContainer ? (
             <div className="space-y-3">
@@ -220,7 +322,7 @@ export const NodeDetailsSheet: React.FC<NodeDetailsSheetProps> = ({
               <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50">
                   <span className="text-muted-foreground">Nome do Container:</span>
-                  <span className="font-semibold text-foreground">{node.container_name || node.hostname || '-'}</span>
+                  <span className="font-semibold text-foreground">{node.container_name || node.name || node.hostname || '-'}</span>
                 </div>
 
                 <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50">
@@ -232,13 +334,20 @@ export const NodeDetailsSheet: React.FC<NodeDetailsSheetProps> = ({
 
                 {node.container_id && (
                   <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50">
-                    <div>
+                    <div className="min-w-0 pr-2">
                       <span className="text-muted-foreground block text-[10px]">Container UUID</span>
-                      <span className="font-mono text-[11px] font-semibold text-foreground">{node.container_id}</span>
+                      <span
+                        className="font-mono text-[11px] font-semibold text-foreground truncate block cursor-help"
+                        title={node.container_id}
+                      >
+                        {truncateKey(node.container_id, 10, 8)}
+                      </span>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon-sm"
+                      className="shrink-0 size-7"
+                      title="Copiar Container UUID completo"
                       onClick={() => handleCopy(node.container_id!, 'container_id')}
                     >
                       {copiedField === 'container_id' ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
@@ -248,13 +357,20 @@ export const NodeDetailsSheet: React.FC<NodeDetailsSheetProps> = ({
 
                 {node.machine_id && (
                   <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50">
-                    <div>
+                    <div className="min-w-0 pr-2">
                       <span className="text-muted-foreground block text-[10px]">Machine ID</span>
-                      <span className="font-mono text-[11px] font-semibold text-foreground">{node.machine_id}</span>
+                      <span
+                        className="font-mono text-[11px] font-semibold text-foreground truncate block cursor-help"
+                        title={node.machine_id}
+                      >
+                        {truncateKey(node.machine_id, 10, 8)}
+                      </span>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon-sm"
+                      className="shrink-0 size-7"
+                      title="Copiar Machine ID completo"
                       onClick={() => handleCopy(node.machine_id!, 'machine_id')}
                     >
                       {copiedField === 'machine_id' ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
@@ -272,7 +388,7 @@ export const NodeDetailsSheet: React.FC<NodeDetailsSheetProps> = ({
               <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50">
                   <span className="text-muted-foreground">Hostname:</span>
-                  <span className="font-semibold text-foreground">{node.hostname || '-'}</span>
+                  <span className="font-semibold text-foreground">{node.hostname || node.name || '-'}</span>
                 </div>
 
                 {node.headscale_node_id && (
@@ -286,13 +402,20 @@ export const NodeDetailsSheet: React.FC<NodeDetailsSheetProps> = ({
 
                 {node.cloud_connection_id && (
                   <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50">
-                    <div>
+                    <div className="min-w-0 pr-2">
                       <span className="text-muted-foreground block text-[10px]">Cloud Connection ID</span>
-                      <span className="font-mono text-[11px] font-semibold text-foreground">{node.cloud_connection_id}</span>
+                      <span
+                        className="font-mono text-[11px] font-semibold text-foreground truncate block cursor-help"
+                        title={node.cloud_connection_id}
+                      >
+                        {truncateKey(node.cloud_connection_id, 10, 8)}
+                      </span>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon-sm"
+                      className="shrink-0 size-7"
+                      title="Copiar Cloud Connection ID completo"
                       onClick={() => handleCopy(node.cloud_connection_id!, 'cloud_conn_id')}
                     >
                       {copiedField === 'cloud_conn_id' ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
@@ -302,13 +425,20 @@ export const NodeDetailsSheet: React.FC<NodeDetailsSheetProps> = ({
 
                 {node.machine_id && (
                   <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50">
-                    <div>
+                    <div className="min-w-0 pr-2">
                       <span className="text-muted-foreground block text-[10px]">Machine ID</span>
-                      <span className="font-mono text-[11px] font-semibold text-foreground">{node.machine_id}</span>
+                      <span
+                        className="font-mono text-[11px] font-semibold text-foreground truncate block cursor-help"
+                        title={node.machine_id}
+                      >
+                        {truncateKey(node.machine_id, 10, 8)}
+                      </span>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon-sm"
+                      className="shrink-0 size-7"
+                      title="Copiar Machine ID completo"
                       onClick={() => handleCopy(node.machine_id!, 'machine_id')}
                     >
                       {copiedField === 'machine_id' ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}

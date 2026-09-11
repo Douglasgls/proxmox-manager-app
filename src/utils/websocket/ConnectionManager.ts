@@ -1,4 +1,4 @@
-type MessageHandler = (data: any) => void;
+type MessageHandler = (data: any, rawMessage?: any) => void;
 type StatusCallback = (event?: any) => void;
 
 export class ConnectionManager {
@@ -177,36 +177,55 @@ export class ConnectionManager {
   private handleIncomingMessage(message: any): void {
     if (!message || typeof message !== 'object') return;
 
-    let channel: string | null = null;
+    const allHandlers = new Set<MessageHandler>();
 
-    if (message.channel) {
-      channel = message.channel;
-    } else if (message.job_id) {
-      channel = `jobs.${message.job_id}`;
-    } else if (message.event) {
-      // Determine channel from event name (e.g. "containers.100.metrics.updated" -> "containers.100.metrics")
-      if (message.event.endsWith('.updated')) {
-        channel = message.event.slice(0, -8);
-      } else {
-        channel = message.event;
+    // 1. Canal direto explícito (ex: message.channel = "jobs.123" ou "dashboard.metrics")
+    if (message.channel && this.listeners.has(message.channel)) {
+      this.listeners.get(message.channel)!.forEach((h) => allHandlers.add(h));
+    }
+
+    // 2. Canal de Job (ex: message.job_id = "123" -> canal "jobs.123")
+    if (message.job_id) {
+      const jobChannel = `jobs.${message.job_id}`;
+      if (this.listeners.has(jobChannel)) {
+        this.listeners.get(jobChannel)!.forEach((h) => allHandlers.add(h));
       }
     }
 
-    if (!channel) return;
+    // 3. Tipo de mensagem (ex: message.type = "node.sync.response")
+    if (message.type && this.listeners.has(message.type)) {
+      this.listeners.get(message.type)!.forEach((h) => allHandlers.add(h));
+    }
 
-    const handlers = this.listeners.get(channel);
-    const eventHandlers = message.event ? this.listeners.get(message.event) : null;
+    // 4. Eventos nomeados (ex: "dashboard.metrics" ou "containers.100.metrics.updated")
+    if (message.event) {
+      if (this.listeners.has(message.event)) {
+        this.listeners.get(message.event)!.forEach((h) => allHandlers.add(h));
+      }
+      if (message.event.endsWith('.updated')) {
+        const baseChannel = message.event.slice(0, -8);
+        if (this.listeners.has(baseChannel)) {
+          this.listeners.get(baseChannel)!.forEach((h) => allHandlers.add(h));
+        }
+      }
+    }
 
-    const allHandlers = new Set<MessageHandler>();
-    if (handlers) handlers.forEach(h => allHandlers.add(h));
-    if (eventHandlers) eventHandlers.forEach(h => allHandlers.add(h));
+    if (allHandlers.size === 0) return;
 
     allHandlers.forEach((handler) => {
       try {
-        const payload = message.data !== undefined ? message.data : message;
-        handler(payload);
+        const isJobStatus = Boolean(message.job_id && (message.status !== undefined || message.progress !== undefined));
+        const payload =
+          isJobStatus
+            ? message
+            : message.payload !== undefined
+            ? message.payload
+            : message.data !== undefined
+            ? message.data
+            : message;
+        handler(payload, message);
       } catch (err) {
-        console.error(`[WS] Error executing callback for channel ${channel}`, err);
+        console.error(`[WS] Error executing callback for message`, message, err);
       }
     });
   }
