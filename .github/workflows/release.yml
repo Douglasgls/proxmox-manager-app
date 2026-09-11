@@ -1,0 +1,44 @@
+name: Build and Release Frontend
+
+on:
+  release:
+    types: [published] # Roda sempre que você publicar uma Release no GitHub
+  workflow_dispatch:   # Permite rodar o botão manualmente na aba "Actions"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Configurar Variáveis de Produção (Single Server)
+        # Força as variáveis corretas para a arquitetura de servidor único
+        run: |
+          echo "VITE_API_URL=/api" >> .env.production
+          echo "VITE_WS_URL=" >> .env.production
+
+      - name: Gerar Build (dist)
+        run: npm run build
+
+      - name: Compactar o artefato (dist.zip)
+        run: zip -r dist.zip dist/
+
+      - name: Fazer Upload do dist.zip na Release
+        # Só tenta fazer o upload se o workflow foi trigado por uma Release real
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

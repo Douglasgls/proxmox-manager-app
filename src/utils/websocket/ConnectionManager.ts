@@ -16,15 +16,22 @@ export class ConnectionManager {
   private statusListeners: Map<string, Set<StatusCallback>> = new Map();
 
   constructor(url: string) {
-    // Ensure URL points to /ws
     let formattedUrl = url;
-    try {
-      const parsedUrl = new URL(url.replace('ws://', 'http://').replace('wss://', 'https://'));
-      parsedUrl.pathname = '/ws';
-      formattedUrl = parsedUrl.toString().replace('http://', 'ws://').replace('https://', 'wss://');
-    } catch (e) {
-      console.warn('[WS] Could not parse / format url', url);
+    
+    // Se a URL estiver vazia (Single Server Deployment), inferimos a partir da origem atual
+    if (!formattedUrl) {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      formattedUrl = `${protocol}//${window.location.host}/ws`;
+    } else {
+      try {
+        const parsedUrl = new URL(formattedUrl.replace('ws://', 'http://').replace('wss://', 'https://'));
+        parsedUrl.pathname = '/ws';
+        formattedUrl = parsedUrl.toString().replace('http://', 'ws://').replace('https://', 'wss://');
+      } catch (e) {
+        console.warn('[WS] Could not parse / format url', formattedUrl);
+      }
     }
+    
     this.url = formattedUrl;
   }
 
