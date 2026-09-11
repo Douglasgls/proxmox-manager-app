@@ -60,8 +60,6 @@ export const ProxmoxConfigCard: React.FC = () => {
 
   // Busca templates instalados no cluster quando pronto
   const {
-    data: installedTemplates = [],
-    isLoading: isTemplatesLoading,
     refetch: refetchInstalledTemplates,
   } = useInstalledTemplates();
 

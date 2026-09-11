@@ -129,12 +129,13 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
   // Define o template padrão: usa agentConfig.default_template se configurado, ou o primeiro disponível
   useEffect(() => {
     if (templates.length > 0) {
-      if (agentConfig?.default_template) {
+      const defaultTemplate = agentConfig?.default_template;
+      if (defaultTemplate) {
         const found = templates.find(
           (t) =>
-            t.filename === agentConfig.default_template ||
-            t.name === agentConfig.default_template ||
-            agentConfig.default_template.includes(t.filename)
+            t.filename === defaultTemplate ||
+            t.name === defaultTemplate ||
+            defaultTemplate.includes(t.filename)
         );
         if (found) {
           setImageName(found.filename);
