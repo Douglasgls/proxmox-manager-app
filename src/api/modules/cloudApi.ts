@@ -18,6 +18,12 @@ export interface CloudActionResponse {
   message: string;
 }
 
+export interface CloudUnlinkResponse {
+  status: string;
+  message: string;
+  cloud_cleanup: boolean;
+}
+
 export interface CloudNode {
   headscale_node_id?: string | null;
   machine_id?: string | null;
@@ -82,6 +88,16 @@ export const cloudApi = {
 
   syncNodes: async (): Promise<CloudActionResponse> => {
     const response = await apiClient.post<CloudActionResponse>('/cloud/sync');
+    return response.data;
+  },
+
+  /**
+   * Desvincula o Agent da Cloud.
+   * @param force - Se true, força o desvínculo local mesmo que a Cloud esteja inacessível.
+   */
+  unlinkFromCloud: async (force?: boolean): Promise<CloudUnlinkResponse> => {
+    const url = force ? '/cloud/unlink?force=true' : '/cloud/unlink';
+    const response = await apiClient.delete<CloudUnlinkResponse>(url);
     return response.data;
   },
 };

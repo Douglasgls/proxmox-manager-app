@@ -1,5 +1,5 @@
 import { cloudApi } from '@/api/modules/cloudApi';
-import type { CloudStatusResponse, CloudDetailsResponse, CloudActionResponse } from '@/api/modules/cloudApi';
+import type { CloudStatusResponse, CloudDetailsResponse, CloudActionResponse, CloudUnlinkResponse } from '@/api/modules/cloudApi';
 
 export class CloudConnectionService {
   /**
@@ -31,5 +31,14 @@ export class CloudConnectionService {
    */
   public static async reconnect(): Promise<CloudActionResponse> {
     return await cloudApi.reconnect();
+  }
+
+  /**
+   * Desvincula o Agent da Cloud.
+   * Nunca enviar force=true de primeira — use apenas como medida de recuperação após um erro 400.
+   * @param force - Se true, força o desvínculo local mesmo com falha na Cloud remota.
+   */
+  public static async unlink(force?: boolean): Promise<CloudUnlinkResponse> {
+    return await cloudApi.unlinkFromCloud(force);
   }
 }

@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CloudConnectionService } from '@/services/cloudConnectionService';
+import type { CloudUnlinkResponse } from '@/api/modules/cloudApi';
 
 export const CLOUD_STATUS_QUERY_KEY = ['cloud', 'status'];
+export const CLOUD_DETAILS_QUERY_KEY_INNER = ['cloud', 'details'];
 
 export const useCloudConnection = () => {
   const queryClient = useQueryClient();
@@ -30,6 +32,16 @@ export const useCloudConnection = () => {
     },
   });
 
+  // Mutation para desvincular da Cloud (force é medida de recuperação, nunca usar de primeira)
+  const unlinkMutation = useMutation<CloudUnlinkResponse, unknown, boolean | undefined>({
+    mutationFn: (force?: boolean) => CloudConnectionService.unlink(force),
+    onSuccess: () => {
+      // Invalida status e detalhes para limpar toda a UI de cloud em tempo real
+      queryClient.invalidateQueries({ queryKey: CLOUD_STATUS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: CLOUD_DETAILS_QUERY_KEY_INNER });
+    },
+  });
+
   return {
     status: statusQuery.data,
     isLoading: statusQuery.isLoading,
@@ -44,5 +56,9 @@ export const useCloudConnection = () => {
     reconnect: reconnectMutation.mutateAsync,
     isReconnecting: reconnectMutation.isPending,
     reconnectError: reconnectMutation.error,
+
+    unlink: unlinkMutation.mutateAsync,
+    isUnlinking: unlinkMutation.isPending,
+    unlinkError: unlinkMutation.error,
   };
 };
