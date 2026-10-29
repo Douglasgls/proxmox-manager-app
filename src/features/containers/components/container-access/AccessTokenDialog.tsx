@@ -52,7 +52,7 @@ export const AccessTokenDialog: React.FC<AccessTokenDialogProps> = ({
   };
 
   const formattedDate = expiresAt 
-    ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' }).format(new Date(expiresAt))
+    ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(expiresAt))
     : '-';
 
   return (

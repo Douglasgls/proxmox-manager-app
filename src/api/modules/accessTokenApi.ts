@@ -7,6 +7,14 @@ export interface AccessToken {
   expires_at: string;
   active: boolean;
   last_used_at?: string | null;
+  description?: string | null;
+}
+
+export interface CreateAccessTokenParams {
+  expires_in_days?: number;
+  expires_in_hours?: number;
+  expires_in_minutes?: number;
+  description?: string;
 }
 
 export const accessTokenApi = {
@@ -15,8 +23,11 @@ export const accessTokenApi = {
     return response.data;
   },
 
-  create: async (containerId: string): Promise<AccessToken> => {
-    const response = await apiClient.post<AccessToken>(`/containers/${containerId}/access-token`);
+  create: async (containerId: string, params?: CreateAccessTokenParams): Promise<AccessToken> => {
+    const response = await apiClient.post<AccessToken>(
+      `/containers/${containerId}/access-token`,
+      params || {}
+    );
     return response.data;
   },
 

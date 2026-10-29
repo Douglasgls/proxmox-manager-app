@@ -54,7 +54,14 @@ export const AccessTokenRow: React.FC<AccessTokenRowProps> = ({ token, container
   return (
     <tr className="border-b border-border hover:bg-muted/50 transition-colors">
       <td className="p-3 text-sm">
-        {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(token.created_at))}
+        <div>
+          {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(token.created_at))}
+        </div>
+        {token.description && (
+          <div className="text-xs text-muted-foreground truncate max-w-[180px] mt-0.5" title={token.description}>
+            {token.description}
+          </div>
+        )}
       </td>
       <td className="p-3 text-sm">
         {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(token.expires_at))}

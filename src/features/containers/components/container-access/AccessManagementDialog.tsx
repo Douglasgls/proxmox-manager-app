@@ -6,10 +6,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useAccessTokens, useCreateAccessToken } from '../../hooks';
 import { AccessTokenTable } from './AccessTokenTable';
 import { AccessTokenDialog } from './AccessTokenDialog';
+import { CreateTokenDialog } from './CreateTokenDialog';
+import type { CreateAccessTokenParams } from '@/api/modules/accessTokenApi';
 import ErrorAlert from '@/components/common/Error';
 
 interface AccessManagementDialogProps {
@@ -26,12 +28,14 @@ export const AccessManagementDialog: React.FC<AccessManagementDialogProps> = ({
   const { data: tokens, isLoading, isError, refetch } = useAccessTokens(containerId);
   const createMutation = useCreateAccessToken();
 
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newTokenData, setNewTokenData] = useState<{ token: string; expiresAt: string } | null>(null);
 
-  const handleGenerateToken = async () => {
+  const handleConfirmCreate = async (params: CreateAccessTokenParams) => {
     try {
-      const response = await createMutation.mutateAsync(containerId);
+      const response = await createMutation.mutateAsync({ containerId, params });
       if (response.token) {
+        setIsCreateOpen(false);
         setNewTokenData({
           token: response.token,
           expiresAt: response.expires_at,
@@ -49,16 +53,12 @@ export const AccessManagementDialog: React.FC<AccessManagementDialogProps> = ({
           <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4 pr-6">
             <DialogTitle>Gerenciar Acessos</DialogTitle>
             <Button
-              onClick={handleGenerateToken}
-              disabled={createMutation.isPending || isLoading}
-              className="gap-2 shrink-0"
+              onClick={() => setIsCreateOpen(true)}
+              disabled={isLoading}
+              className="gap-2 shrink-0 cursor-pointer"
               size="sm"
             >
-              {createMutation.isPending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Plus className="size-4" />
-              )}
+              <Plus className="size-4" />
               Novo Token
             </Button>
           </DialogHeader>
@@ -80,6 +80,13 @@ export const AccessManagementDialog: React.FC<AccessManagementDialogProps> = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      <CreateTokenDialog
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onConfirm={handleConfirmCreate}
+        isLoading={createMutation.isPending}
+      />
 
       {newTokenData && (
         <AccessTokenDialog
