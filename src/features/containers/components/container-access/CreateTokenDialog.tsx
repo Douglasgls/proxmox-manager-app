@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -50,6 +50,16 @@ export const CreateTokenDialog: React.FC<CreateTokenDialogProps> = ({
   const [customValue, setCustomValue] = useState<number>(7);
   const [customUnit, setCustomUnit] = useState<'minutes' | 'hours' | 'days'>('days');
   const [description, setDescription] = useState<string>('');
+
+  // Reseta o formulário ao abrir o modal
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedPreset('7d');
+      setCustomValue(7);
+      setCustomUnit('days');
+      setDescription('');
+    }
+  }, [isOpen]);
 
   // Calcula a data estimada de expiração com base na seleção
   const { estimatedDate, relativeText, isValid } = useMemo(() => {
