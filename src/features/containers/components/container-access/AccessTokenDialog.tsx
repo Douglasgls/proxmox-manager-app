@@ -66,10 +66,7 @@ export const AccessTokenDialog: React.FC<AccessTokenDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-xs text-green-600 dark:text-green-400 font-medium">
-          <span className="size-2 rounded-full bg-green-500 animate-pulse shrink-0" />
-          <span>Sincronizado e ativo no Gateway Seguro da Cloud</span>
-        </div>
+
 
 
         <div className="bg-muted p-4 rounded-md relative flex items-center justify-between gap-4">
