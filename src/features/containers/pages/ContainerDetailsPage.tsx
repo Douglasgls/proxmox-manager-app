@@ -153,6 +153,7 @@ export const ContainerDetailsPage: React.FC = () => {
           <AccessSetupButton 
             containerId={inventory.id} 
             disabled={isLocked || isAnyActionPending} 
+            isRunning={isRunning}
           />
           <Button
             variant="outline"

@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Trash2 } from 'lucide-react';
 import { useRevokeAccessToken } from '../../hooks';
 import type { AccessToken } from '@/api/modules/accessTokenApi';
+import { useToastStore } from '@/utils/clipboard';
+import { extractErrorMessage } from '@/utils/error';
 
 interface AccessTokenRowProps {
   token: AccessToken;
@@ -21,8 +23,10 @@ export const AccessTokenRow: React.FC<AccessTokenRowProps> = ({ token, container
 
     try {
       await revokeMutation.mutateAsync({ tokenId: token.id, containerId });
+      useToastStore.getState().showToast('Token revogado com sucesso!', 'success');
     } catch (error) {
       console.error('Failed to revoke token:', error);
+      useToastStore.getState().showToast(extractErrorMessage(error, 'Falha ao revogar token'), 'error');
       setConfirmRevoke(false);
     }
   };
@@ -30,7 +34,7 @@ export const AccessTokenRow: React.FC<AccessTokenRowProps> = ({ token, container
   const isExpired = new Date(token.expires_at) < new Date();
   
   let status = 'ACTIVE';
-  if (!token.active && !isExpired) status = 'REVOKED';
+  if (!token.active) status = 'REVOKED';
   else if (isExpired) status = 'EXPIRED';
 
   const getStatusColor = (status: string) => {

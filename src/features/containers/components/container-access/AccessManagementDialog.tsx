@@ -15,6 +15,8 @@ import type { CreateAccessTokenParams } from '@/api/modules/accessTokenApi';
 import ErrorAlert from '@/components/common/Error';
 import { useCloudConnection } from '@/hooks/useCloudConnection';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useToastStore } from '@/utils/clipboard';
+import { extractErrorMessage } from '@/utils/error';
 
 interface AccessManagementDialogProps {
   isOpen: boolean;
@@ -56,9 +58,11 @@ export const AccessManagementDialog: React.FC<AccessManagementDialogProps> = ({
           token: response.token,
           expiresAt: response.expires_at,
         });
+        useToastStore.getState().showToast('Token de acesso gerado com sucesso!', 'success');
       }
     } catch (err) {
       console.error('Failed to generate token:', err);
+      useToastStore.getState().showToast(extractErrorMessage(err, 'Falha ao gerar token de acesso'), 'error');
     }
   };
 
