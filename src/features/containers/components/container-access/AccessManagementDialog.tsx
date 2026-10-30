@@ -49,20 +49,22 @@ export const AccessManagementDialog: React.FC<AccessManagementDialogProps> = ({
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newTokenData, setNewTokenData] = useState<{ token: string; expiresAt: string } | null>(null);
 
-  const handleConfirmCreate = async (params: CreateAccessTokenParams) => {
+  const handleConfirmCreate = async (params: CreateAccessTokenParams): Promise<boolean> => {
     try {
       const response = await createMutation.mutateAsync({ containerId, params });
       if (response.token) {
-        setIsCreateOpen(false);
         setNewTokenData({
           token: response.token,
           expiresAt: response.expires_at,
         });
-        useToastStore.getState().showToast('Token de acesso gerado com sucesso!', 'success');
+        useToastStore.getState().showToast('Token de acesso gerado e sincronizado com sucesso!', 'success');
+        return true;
       }
+      return false;
     } catch (err) {
       console.error('Failed to generate token:', err);
       useToastStore.getState().showToast(extractErrorMessage(err, 'Falha ao gerar token de acesso'), 'error');
+      return false;
     }
   };
 
@@ -130,9 +132,9 @@ export const AccessManagementDialog: React.FC<AccessManagementDialogProps> = ({
         isLoading={createMutation.isPending}
       />
 
-      {newTokenData && (
+      {newTokenData && !isCreateOpen && (
         <AccessTokenDialog
-          isOpen={!!newTokenData}
+          isOpen={Boolean(newTokenData && !isCreateOpen)}
           onClose={() => setNewTokenData(null)}
           token={newTokenData.token}
           expiresAt={newTokenData.expiresAt}
