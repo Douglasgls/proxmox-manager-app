@@ -6,6 +6,7 @@ import { Loading } from '../common/Loading';
 import ErrorBoundary from '../common/ErrorBoundary';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { ProxmoxErrorBanner } from '../common/ProxmoxErrorBanner';
 
 export const AppLayout: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -40,6 +41,7 @@ export const AppLayout: React.FC = () => {
         {/* Content Body */}
         <main className="flex-1 overflow-y-auto p-6 md:p-8 bg-muted/20">
           <div className="mx-auto max-w-7xl">
+            <ProxmoxErrorBanner />
             <ErrorBoundary>
               <Outlet />
             </ErrorBoundary>

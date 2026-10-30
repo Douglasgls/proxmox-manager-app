@@ -1,6 +1,8 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/stores/authStore';
+import { useProxmoxErrorStore } from '@/stores/proxmoxErrorStore';
+import { useToastStore } from '@/utils/clipboard';
 
 // URL base obtida do arquivo .env ou padrão
 const BASE_URL = import.meta.env.VITE_API_URL;
@@ -11,6 +13,16 @@ let failedQueue: Array<{
   resolve: (value: any) => void;
   reject: (error: any) => void;
 }> = [];
+
+// Controle de debounce para notificações de erro do Proxmox via toast
+let lastProxmoxToastTime = 0;
+const notifyProxmoxToast = (message: string) => {
+  const now = Date.now();
+  if (now - lastProxmoxToastTime > 6000) {
+    lastProxmoxToastTime = now;
+    useToastStore.getState().showToast(message, 'error');
+  }
+};
 
 // Função para processar a fila de requisições pendentes pós-refresh
 const processQueue = (error: any, token: string | null = null) => {
@@ -48,14 +60,61 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Interceptor de Resposta (Response) - Captura de 401 e Refresh Token
+// Interceptor de Resposta (Response) - Captura de erros do Proxmox, 401 e Refresh Token
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
-    // Retorna a resposta padrão
+    // Se a requisição de monitoramento ou nós tiver sucesso, limpa eventuais erros prévios do Proxmox
+    if (
+      (response.config.url?.includes('/monitor/') || response.config.url?.includes('/nodes')) &&
+      useProxmoxErrorStore.getState().error
+    ) {
+      useProxmoxErrorStore.getState().clearError();
+    }
     return response;
   },
   async (error) => {
     const originalRequest = error.config;
+    const responseData = error.response?.data;
+
+    // Captura erros de permissão ou conectividade do Proxmox VE
+    if (error.response) {
+      const status = error.response.status;
+      const errorCode = responseData?.error_code;
+      const isPermError =
+        status === 403 &&
+        (errorCode === 'PROXMOX_PERMISSION_DENIED' ||
+          (typeof responseData?.detail === 'string' &&
+            responseData.detail.includes('Permissão insuficiente no Proxmox')));
+
+      const isConnError =
+        (status === 502 || status === 503) &&
+        (errorCode === 'PROXMOX_CONNECTION_ERROR' ||
+          (typeof responseData?.detail === 'string' &&
+            responseData.detail.includes('Falha na comunicação com o Proxmox')));
+
+      if (isPermError) {
+        const detailMsg =
+          responseData?.detail ||
+          'Permissão insuficiente no Proxmox VE para executar esta ação.';
+
+        useProxmoxErrorStore.getState().setError({
+          errorCode: 'PROXMOX_PERMISSION_DENIED',
+          detail: detailMsg,
+          requiredPermission: responseData?.required_permission || null,
+          path: responseData?.path || null,
+          rawMessage: responseData?.raw_message,
+          timestamp: Date.now(),
+        });
+
+        notifyProxmoxToast(detailMsg);
+      } else if (isConnError) {
+        useProxmoxErrorStore.getState().setError({
+          errorCode: 'PROXMOX_CONNECTION_ERROR',
+          detail: responseData?.detail || 'Falha na comunicação com o Proxmox VE.',
+          timestamp: Date.now(),
+        });
+      }
+    }
 
     // Se o erro não for 401 ou se a requisição original já foi uma retentativa de refresh, propaga o erro
     if (!error.response || error.response.status !== 401 || originalRequest._retry) {

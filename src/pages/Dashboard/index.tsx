@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import PageHeader from '@/components/common/PageHeader';
 import ErrorAlert from '@/components/common/Error';
 import Loading from '@/components/common/Loading';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { inventoryApi } from '@/api/modules/inventoryApi';
 import { formatBytes } from '@/utils/bytes';
 import { useDashboard } from '@/hooks/useDashboard';
@@ -17,7 +20,8 @@ import {
   Disc, FileCode2,
   XCircle, Network,
   Database, CheckCircle2,
-  } from 'lucide-react';
+  ShieldAlert, KeyRound, Settings, RefreshCw,
+} from 'lucide-react';
 
 // Função auxiliar para formatar o Uptime
 const formatUptime = (totalSeconds: number) => {
@@ -54,10 +58,17 @@ const MetricBar: React.FC<{ label: string; percent: number; valueText: string; c
 };
 
 export const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { metrics } = useDashboard();
   const { data: wsMetrics, loading: isMetricsPending } = useDashboardMetrics();
 
-  const { data: host, isPending: isHostPending, isError: isHostError, refetch: refetchHost } = useQuery({
+  const {
+    data: host,
+    isPending: isHostPending,
+    isError: isHostError,
+    error: hostError,
+    refetch: refetchHost,
+  } = useQuery({
     queryKey: ['host', 'inventory'],
     queryFn: inventoryApi.getHost,
     staleTime: Infinity, 
@@ -69,8 +80,8 @@ export const Dashboard: React.FC = () => {
   });
 
   const { data: networks } = useQuery({
-      queryKey: ["networks"],
-      queryFn: inventoryApi.getNetworks,
+    queryKey: ["networks"],
+    queryFn: inventoryApi.getNetworks,
   });
 
   // Ordenação das Interfaces de Rede:
@@ -113,6 +124,66 @@ export const Dashboard: React.FC = () => {
   }
 
   if (isError || !host || !metrics.lastUpdate) {
+    const errData = (hostError as any)?.response?.data;
+    const isPermission =
+      (hostError as any)?.response?.status === 403 ||
+      errData?.error_code === 'PROXMOX_PERMISSION_DENIED';
+
+    if (isPermission) {
+      return (
+        <div className="max-w-3xl mx-auto my-8 p-6 md:p-8 rounded-2xl border border-amber-500/30 bg-card shadow-lg text-foreground space-y-6 animate-in fade-in-50 duration-200">
+          <div className="flex items-start gap-4">
+            <div className="p-3.5 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 shrink-0">
+              <ShieldAlert className="size-8" />
+            </div>
+            <div className="space-y-1.5 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-lg font-bold text-foreground">Permissão Insuficiente no Proxmox VE</h3>
+                <Badge variant="warning" className="text-xs">403 Forbidden</Badge>
+                {errData?.required_permission && (
+                  <Badge variant="outline" className="font-mono text-xs border-amber-500/40">
+                    {errData.required_permission}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {errData?.detail ||
+                  "O Proxmox VE negou acesso à leitura de status do nó por falta de permissão 'Sys.Audit'."}
+              </p>
+            </div>
+          </div>
+
+          <div className="p-5 rounded-xl border border-border bg-muted/30 space-y-3.5 text-xs leading-relaxed">
+            <p className="font-semibold text-foreground flex items-center gap-2 text-sm">
+              <KeyRound className="size-4 text-amber-500" />
+              Como liberar essa permissão no Proxmox VE:
+            </p>
+            <ol className="list-decimal list-inside space-y-2 text-muted-foreground pl-1 text-xs">
+              <li>Acesse o Proxmox VE &gt; <strong>Datacenter</strong> &gt; aba <strong>Permissions</strong>.</li>
+              <li>Clique no botão <strong>Add</strong> &gt; selecione <strong>API Token Permission</strong> (ou <em>User Permission</em>).</li>
+              <li>Defina o campo <strong>Path</strong> como <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-foreground font-semibold">{errData?.path || '/nodes/pve'}</code> (ou <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-foreground font-semibold">/</code>).</li>
+              <li>Atribua a Role <strong className="text-foreground font-semibold">PVEAuditor</strong> (ou <em>Administrator</em>) ao token.</li>
+              <li>Marque a opção <strong>Propagate</strong> (Propagar) e clique em <strong>Add</strong>.</li>
+            </ol>
+            <p className="text-[11px] text-muted-foreground pt-2 border-t border-border/50">
+              * Dica: Se o seu API Token foi criado com a opção <em>Privilege Separation</em> ativada, a permissão deve ser concedida especificamente para o Token para surtir efeito.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <Button variant="outline" size="sm" onClick={() => refetchHost()} className="gap-2">
+              <RefreshCw className="size-3.5" />
+              Tentar Novamente
+            </Button>
+            <Button size="sm" onClick={() => navigate('/app/settings')} className="gap-2">
+              <Settings className="size-3.5" />
+              Ir para Configurações
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     return <ErrorAlert title="Não foi possível carregar os dados" onRetry={() => { refetchHost(); }} />;
   }
 
@@ -122,8 +193,6 @@ export const Dashboard: React.FC = () => {
   const diskTotal = metrics.disk_used_bytes + metrics.disk_free_bytes;
   const diskPercent = diskTotal > 0 ? (metrics.disk_used_bytes / diskTotal) * 100 : 0;
 
-  console.log(metrics)
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -132,7 +201,7 @@ export const Dashboard: React.FC = () => {
       />
 
       {/* PARA MAIS DADOS */}
-     <div className="mb-6 flex items-center gap-2 rounded-lg border border-border bg-muted/20 px-4 py-3 text-sm">
+      <div className="mb-6 flex items-center gap-2 rounded-lg border border-border bg-muted/20 px-4 py-3 text-sm">
         <span className="font-medium text-muted-foreground">Para mais dados acesse:</span>
         
         <div className="flex flex-wrap gap-3">
@@ -142,8 +211,8 @@ export const Dashboard: React.FC = () => {
               <a
                 key={index}
                 href={`https://${network.address}:8006`}
-                target="_blank" // Abre em uma nova aba
-                rel="noopener noreferrer" // Boa prática de segurança ao abrir nova aba
+                target="_blank"
+                rel="noopener noreferrer"
                 className="font-mono text-primary hover:underline hover:text-primary/80 transition-colors"
               >
                 https://{network.address}:8006
@@ -175,7 +244,6 @@ export const Dashboard: React.FC = () => {
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Kernel Linux</p>
-            {/* Pega apenas a parte principal do kernel para não quebrar o layout */}
             <p className="font-medium text-foreground truncate" title={host.kernel_version}>
               {host.kernel_version.split(' ')[1] || host.kernel_version}
             </p>
@@ -224,8 +292,6 @@ export const Dashboard: React.FC = () => {
               percent={diskPercent} 
               valueText={`${formatBytes(metrics.disk_used_bytes)} / ${formatBytes(diskTotal)}`} 
             />
-            
-            {/* Dica para o TCC: Se você instalar a biblioteca 'recharts', você pode substituir as barras por um <LineChart> aqui! */}
           </CardContent>
         </Card>
 
@@ -259,9 +325,9 @@ export const Dashboard: React.FC = () => {
                 <span className="font-semibold text-foreground">{formatBytes(metrics.rx_bytes)}</span>
               </div>
 
-              <div className="flex flex-col gap-1 border-l-2 border-blue-500 pl-3 mt-2">
+              <div className="flex flex-col gap-1 border-l-2 border-primary pl-3 mt-2">
                 <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  <ArrowUpFromLine className="size-3.5 text-blue-500" /> Tráfego (TX)
+                  <ArrowUpFromLine className="size-3.5 text-primary" /> Tráfego (TX)
                 </span>
                 <span className="font-semibold text-foreground">{formatBytes(metrics.tx_bytes)}</span>
               </div>
@@ -269,28 +335,28 @@ export const Dashboard: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* CARD DE INSTÂNCIAS E IMAGENS */}
+          {/* CARD DE CONTÊINERES (LXC) */}
           <Card>
             <CardHeader>
-              <CardTitle>Instâncias e Imagens</CardTitle>
+              <CardTitle>Inventário de Contêineres (LXC)</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-3 gap-3">
+            <CardContent className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               
-              {/* Total LXC (Neutro) */}
-              <div className="flex flex-col rounded-lg border border-border bg-muted/20 p-3">
-                <span className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-medium">LXC</span>
+              {/* Total */}
+              <div className="flex flex-col rounded-lg border border-border bg-muted/40 p-3">
+                <span className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-medium">Total</span>
                 <div className="flex items-center gap-2 font-bold text-lg text-foreground mt-auto">
                   <Box className="size-4 text-primary" />
-                  {metrics.containers_total}
+                  {host.containers_total}
                 </div>
               </div>
 
-              {/* Rodando (Verde) */}
+              {/* Em Execução (Verde) */}
               <div className="flex flex-col rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
-                <span className="text-xs text-emerald-700 dark:text-emerald-400 mb-1 uppercase tracking-wider font-medium">Rodando</span>
+                <span className="text-xs text-emerald-700 dark:text-emerald-400 mb-1 uppercase tracking-wider font-medium">Em Execução</span>
                 <div className="flex items-center gap-2 font-bold text-lg text-emerald-700 dark:text-emerald-400 mt-auto">
                   <PlayCircle className="size-4" />
-                  {metrics.containers_running}
+                  {host.containers_running}
                 </div>
               </div>
 
@@ -299,11 +365,11 @@ export const Dashboard: React.FC = () => {
                 <span className="text-xs text-destructive mb-1 uppercase tracking-wider font-medium">Parados</span>
                 <div className="flex items-center gap-2 font-bold text-lg text-destructive mt-auto">
                   <StopCircle className="size-4" />
-                  {metrics.containers_stopped}
+                  {host.containers_stopped}
                 </div>
               </div>
 
-              {/* Suspensos (Amarelo/Laranja) */}
+              {/* Suspensos (Laranja/Amarelo) */}
               <div className="flex flex-col rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
                 <span className="text-xs text-amber-700 dark:text-amber-400 mb-1 uppercase tracking-wider font-medium">Suspensos</span>
                 <div className="flex items-center gap-2 font-bold text-lg text-amber-700 dark:text-amber-400 mt-auto">
@@ -343,7 +409,6 @@ export const Dashboard: React.FC = () => {
           <CardHeader>
             <CardTitle>Armazenamento (Storages)</CardTitle>
           </CardHeader>
-          {/* Reduzido para no máximo 2 colunas para não espremer os dados */}
           <CardContent className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             {storages?.map((storage) => (
               <div
@@ -451,17 +516,8 @@ export const Dashboard: React.FC = () => {
         </Card>
       </div>
 
-      
     </div>
   );
 };
-
-// Componente auxiliar de texto (mantido o seu original)
-// const Detail: React.FC<{ label: string; value: string | number }> = ({ label, value }) => (
-//   <div className="min-w-0">
-//     <p className="text-sm text-muted-foreground">{label}</p>
-//     <p className="mt-1 wrap-break-word font-medium text-foreground">{value}</p>
-//   </div>
-// );
 
 export default Dashboard;

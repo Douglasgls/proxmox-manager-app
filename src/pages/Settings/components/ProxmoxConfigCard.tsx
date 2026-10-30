@@ -83,6 +83,7 @@ export const ProxmoxConfigCard: React.FC = () => {
   const [testResult, setTestResult] = useState<{
     tested: boolean;
     success: boolean;
+    hasWarning?: boolean;
     message?: string;
   }>({
     tested: false,
@@ -146,7 +147,7 @@ export const ProxmoxConfigCard: React.FC = () => {
     }
 
     try {
-      const res = await testConnection({
+      const res: any = await testConnection({
         proxmox_host: formData.proxmox_host.trim(),
         proxmox_user: formData.proxmox_user.trim(),
         proxmox_token_name: formData.proxmox_token_name.trim(),
@@ -157,6 +158,7 @@ export const ProxmoxConfigCard: React.FC = () => {
       setTestResult({
         tested: true,
         success: true,
+        hasWarning: Boolean(res?.has_warning),
         message:
           res.message ||
           res.detail ||
@@ -569,15 +571,27 @@ export const ProxmoxConfigCard: React.FC = () => {
             {testResult.tested && (
               <div>
                 {testResult.success ? (
-                  <Alert variant="success" className="border-emerald-500/30 bg-emerald-500/10">
-                    <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
-                    <AlertTitle className="text-emerald-900 dark:text-emerald-300 font-semibold">
-                      Conexão Verificada com Sucesso!
-                    </AlertTitle>
-                    <AlertDescription className="text-emerald-800 dark:text-emerald-300/90 mt-1">
-                      {testResult.message || 'As credenciais foram validadas com o cluster Proxmox VE. Clique em Salvar Configuração para aplicar.'}
-                    </AlertDescription>
-                  </Alert>
+                  testResult.hasWarning ? (
+                    <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200">
+                      <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />
+                      <AlertTitle className="text-amber-950 dark:text-amber-200 font-semibold">
+                        Conectado com Ressalvas de Permissão
+                      </AlertTitle>
+                      <AlertDescription className="text-amber-800 dark:text-amber-300/90 mt-1">
+                        {testResult.message}
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <Alert variant="success" className="border-emerald-500/30 bg-emerald-500/10">
+                      <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+                      <AlertTitle className="text-emerald-900 dark:text-emerald-300 font-semibold">
+                        Conexão Verificada com Sucesso!
+                      </AlertTitle>
+                      <AlertDescription className="text-emerald-800 dark:text-emerald-300/90 mt-1">
+                        {testResult.message || 'As credenciais foram validadas com o cluster Proxmox VE. Clique em Salvar Configuração para aplicar.'}
+                      </AlertDescription>
+                    </Alert>
+                  )
                 ) : (
                   <Alert variant="destructive">
                     <AlertTriangle className="size-4" />
