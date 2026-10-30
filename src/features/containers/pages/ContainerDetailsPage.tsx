@@ -7,6 +7,7 @@ import {
   useRestartContainer,
   useDeleteContainer,
   useAccessTokens,
+  useClientConnections,
 } from '../hooks';
 import { useContainerMetrics } from '@/hooks/websocket/useContainerMetrics';
 import PageHeader from '@/components/common/PageHeader';
@@ -55,9 +56,11 @@ export const ContainerDetailsPage: React.FC = () => {
 
   const containerDbId = inventory?.id || id;
   const { data: tokens } = useAccessTokens(containerDbId);
+  const { data: connections } = useClientConnections(containerDbId);
   const now = new Date();
   const activeTokens = tokens?.filter((t) => t.active && (!t.expires_at || new Date(t.expires_at) > now)) ?? [];
   const activeTokensCount = tokens !== undefined ? activeTokens.length : (inventory?.active_tokens_count ?? 0);
+  const onlineConnectionsCount = connections?.filter((c) => c.online).length ?? 0;
   const tailscaleIp = inventory?.tailscale_ip || null;
   const hasRemoteAccess = Boolean(tailscaleIp || (tokens && tokens.length > 0) || (inventory?.active_tokens_count ?? 0) > 0);
 
@@ -165,6 +168,7 @@ export const ContainerDetailsPage: React.FC = () => {
             containerId={inventory.id} 
             disabled={isLocked || isAnyActionPending} 
             isRunning={isRunning}
+            tailscaleIp={tailscaleIp}
           />
           <Button
             variant="outline"
@@ -441,10 +445,16 @@ export const ContainerDetailsPage: React.FC = () => {
                         <span className="text-muted-foreground text-xs italic">Aguardando registro</span>
                       )}
                     </div>
-                    <div className="flex justify-between items-center text-xs py-1">
+                    <div className="flex justify-between items-center text-xs py-0.5">
                       <span className="text-muted-foreground">Tokens Temporários</span>
                       <span className={`font-semibold ${activeTokensCount > 0 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
                         {activeTokensCount > 0 ? `${activeTokensCount} ${activeTokensCount === 1 ? 'ativo' : 'ativos'}` : 'Nenhum ativo'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs py-0.5">
+                      <span className="text-muted-foreground">Sessões Conectadas</span>
+                      <span className={`font-semibold ${onlineConnectionsCount > 0 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+                        {onlineConnectionsCount > 0 ? `${onlineConnectionsCount} ${onlineConnectionsCount === 1 ? 'online' : 'online'}` : '0 online'}
                       </span>
                     </div>
                   </div>

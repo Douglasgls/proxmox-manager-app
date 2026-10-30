@@ -43,3 +43,12 @@ export const useRevokeAccessToken = () => {
     },
   });
 };
+
+export const useClientConnections = (containerId: string) => {
+  return useQuery({
+    queryKey: ['client-connections', containerId],
+    queryFn: () => accessTokenApi.getConnections(containerId),
+    enabled: !!containerId,
+    refetchInterval: 10000,
+  });
+};

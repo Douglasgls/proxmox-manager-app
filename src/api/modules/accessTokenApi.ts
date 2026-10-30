@@ -10,6 +10,17 @@ export interface AccessToken {
   description?: string | null;
 }
 
+
+export interface ClientConnection {
+  id: string;
+  hostname: string | null;
+  tailscale_ip: string | null;
+  online: boolean;
+  status: string;
+  last_seen: string | null;
+  created_at: string | null;
+}
+
 export interface CreateAccessTokenParams {
   expires_in_days?: number;
   expires_in_hours?: number;
@@ -33,5 +44,10 @@ export const accessTokenApi = {
 
   revoke: async (tokenId: string): Promise<void> => {
     await apiClient.delete(`/access-token/${tokenId}`);
+  },
+
+  getConnections: async (containerId: string): Promise<ClientConnection[]> => {
+    const response = await apiClient.get<ClientConnection[]>(`/containers/${containerId}/connections`);
+    return response.data;
   },
 };
