@@ -15,7 +15,6 @@ export const Login: React.FC = () => {
   const { login } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
-
   const {
     register,
     handleSubmit,
@@ -32,8 +31,8 @@ export const Login: React.FC = () => {
   const onSubmit = async (data: LoginInput) => {
     setError(null);
     try {
-      // Chama o login do AuthProvider. Se for bem sucedido, o layout redirecionará
-      await login(data.email, data.password);
+      // Chama o login do AuthProvider passando email, senha e a opção de persistência
+      await login(data.email, data.password, Boolean(data.rememberMe));
     } catch (err: any) {
       const errorMessage = extractErrorMessage(err, 'Erro ao realizar login');
       setError(errorMessage);
@@ -55,8 +54,6 @@ export const Login: React.FC = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        
-
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {error && (
             <div className="flex items-center gap-2 p-3 text-sm text-destructive rounded-lg bg-destructive/10 border border-destructive/20 animate-in fade-in duration-200">

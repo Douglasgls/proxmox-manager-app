@@ -8,7 +8,7 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password?: string) => Promise<void>;
+  login: (email: string, password?: string, rememberMe?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -29,27 +29,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           const userData = response.data || response;
 
-          if (userData && (userData.id || userData.email || userData.id)) {
+          if (userData && (userData.id || userData.email)) {
             updateUser(userData);
           } else {
             console.warn("Perfil vazio retornado pelo servidor.");
-            // Só chame clearAuth se você tiver CERTEZA que o token expirou.
-            // Geralmente deixamos o interceptor do Axios (erro 401) fazer o clearAuth.
           }
-
-
-          // if (response.success && response.data) {
-          //   updateUser(response.data);
-          // } else {
-          //   // Se a resposta indicar erro ou não houver dados
-          //   clearAuth();
-          // }
         } catch (error) {
           console.error('[Auth] Failed to initialize user session', error);
-          // O ApiClient interceptor de 401 fará o refresh se necessário.
-          // Se falhou aqui, o token pode estar inválido e o refresh também falhou.
-          // Deixamos o fluxo seguir, mas não limpamos à força imediatamente
-          // para dar chance ao interceptor de rodar o refresh no primeiro request.
         }
       }
       setIsLoading(false);
@@ -58,23 +44,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, [token, clearAuth, updateUser]);
 
-  const login = async (email: string, password?: string) => {
-    // setIsLoading(true);
+  const login = async (email: string, password?: string, rememberMe: boolean = false) => {
     try {
       const response = await authApi.login({ email, password });
 
       const payload = (response as any).data || response;
 
       if (payload && payload.access_token) {
-
         setAuth(
           payload.access_token,
           payload.refresh_token,
           payload.expires_in,
-          payload.token_type
-        )
+          payload.token_type,
+          rememberMe
+        );
         refreshProfile();
-
       } else {
         throw new Error((response as any).message || 'Falha ao realizar login');
       }
@@ -82,9 +66,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearAuth();
       throw error;
     } 
-    // finally {
-    //   setIsLoading(false);
-    // }
   };
 
   const logout = async () => {
@@ -100,23 +81,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // const refreshProfile = async () => {
-  //   try {
-  //     const response = await authApi.getProfile();
-  //     if (response.success && response.data) {
-  //       updateUser(response.data);
-  //     }
-  //   } catch (error) {
-  //     console.error('[Auth] Failed to refresh profile data', error);
-  //   }
-  // };
-
   const refreshProfile = async () => {
     try {
       const response = await authApi.getProfile();
       const userData = response.data || response;
       
-      // Mesma lógica, se temos os dados brutos, salvamos.
       if (userData) {
         updateUser(userData);
       }
