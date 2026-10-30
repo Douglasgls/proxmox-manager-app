@@ -9,6 +9,9 @@ export interface ContainerInventory {
   memory_total_bytes: number;
   disk_total_bytes: number;
   ip_address?: string | null;
+  tailscale_ip?: string | null;
+  tailscale_online?: boolean;
+  active_tokens_count?: number;
   components?: ContainerComponentStatus[];
 }
 

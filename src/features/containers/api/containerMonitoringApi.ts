@@ -194,6 +194,9 @@ export const containerMonitoringApi = {
       ...rawInv,
       id: uuid || rawInv?.id || String(numericId),
       ip_address: dbContainerData ? (dbContainerData.ip_address ?? dbContainerData.ipAddress) : (rawInv?.ip_address ?? null),
+      tailscale_ip: dbContainerData ? (dbContainerData.tailscale_ip ?? null) : (rawInv?.tailscale_ip ?? null),
+      tailscale_online: dbContainerData ? Boolean(dbContainerData.tailscale_online) : Boolean(rawInv?.tailscale_online),
+      active_tokens_count: dbContainerData ? (dbContainerData.active_tokens_count ?? 0) : (rawInv?.active_tokens_count ?? 0),
       components: dbContainerData ? (dbContainerData.components || []) : (rawInv?.components || []),
     };
   },

@@ -5,7 +5,8 @@ import {
   useStartContainer,
   useStopContainer,
   useRestartContainer,
-  useDeleteContainer
+  useDeleteContainer,
+  useAccessTokens,
 } from '../hooks';
 import { useContainerMetrics } from '@/hooks/websocket/useContainerMetrics';
 import PageHeader from '@/components/common/PageHeader';
@@ -22,8 +23,10 @@ import {
   ArrowLeft, Cpu, HardDrive, Database, Activity,
   ArrowDownToLine, ArrowUpFromLine, Binary, Clock,
   RefreshCw, Info, FileInput, FileOutput,
-  Loader2, Globe, Package, AlertTriangle
+  Loader2, Globe, Package, AlertTriangle,
+  Shield, ShieldCheck, Copy
 } from 'lucide-react';
+import { copyToClipboard } from '@/utils/clipboard';
 import {
   Dialog,
   DialogContent,
@@ -49,6 +52,12 @@ export const ContainerDetailsPage: React.FC = () => {
     isError: isInventoryError,
     refetch: refetchInventory,
   } = useContainerInventoryById(id);
+
+  const { data: tokens } = useAccessTokens(id);
+  const activeTokens = tokens?.filter((t) => t.active) ?? [];
+  const activeTokensCount = inventory?.active_tokens_count ?? activeTokens.length;
+  const tailscaleIp = inventory?.tailscale_ip || null;
+  const hasRemoteAccess = Boolean(tailscaleIp || (tokens && tokens.length > 0));
 
   const {
     data: metrics,
@@ -382,26 +391,83 @@ export const ContainerDetailsPage: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Status Monitor Card */}
+          {/* Card Acesso & Conectividade */}
           <Card className="border-border shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-md flex items-center gap-2">
-                <Activity className="size-4 text-primary" />
-                Saúde do Sistema
+              <CardTitle className="text-md flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  {hasRemoteAccess ? (
+                    <ShieldCheck className="size-4 text-green-500" />
+                  ) : (
+                    <Shield className="size-4 text-muted-foreground" />
+                  )}
+                  Acesso & Conectividade
+                </span>
+                {hasRemoteAccess ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">
+                    <span className="size-1.5 rounded-full bg-green-500 animate-pulse" />
+                    VPN Ativa
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground border border-border/50">
+                    Rede Local
+                  </span>
+                )}
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-4 flex flex-col justify-center h-[140px] space-y-2">
-              <div className="flex justify-between items-center text-sm py-1 border-b border-border/30">
-                <span className="text-muted-foreground">Estado Operacional</span>
-                <span className="font-semibold text-green-500">Saudável</span>
-              </div>
-              <div className="flex justify-between items-center text-sm py-1">
-                <span className="text-muted-foreground">Atualização Periódica</span>
-                <span className="font-semibold text-muted-foreground flex items-center gap-1">
-                  <span className="size-2 rounded-full bg-green-500 animate-pulse" />
-                  Ativa (5s)
-                </span>
-              </div>
+            <CardContent className="pt-3 flex flex-col justify-between h-[140px]">
+              {hasRemoteAccess ? (
+                <>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center text-xs py-1 border-b border-border/30">
+                      <span className="text-muted-foreground">IP Seguro (VPN)</span>
+                      {tailscaleIp ? (
+                        <div className="flex items-center gap-1.5">
+                          <code className="font-mono text-xs font-bold text-foreground bg-muted/60 px-1.5 py-0.5 rounded">
+                            {tailscaleIp}
+                          </code>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(tailscaleIp, 'IP da VPN')}
+                            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                            title="Copiar IP da VPN"
+                          >
+                            <Copy className="size-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs italic">Aguardando registro</span>
+                      )}
+                    </div>
+                    <div className="flex justify-between items-center text-xs py-1">
+                      <span className="text-muted-foreground">Tokens Temporários</span>
+                      <span className={`font-semibold ${activeTokensCount > 0 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+                        {activeTokensCount > 0 ? `${activeTokensCount} ${activeTokensCount === 1 ? 'ativo' : 'ativos'}` : 'Nenhum ativo'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="pt-1 border-t border-border/20 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span className="truncate">Gateway Headscale</span>
+                    <span className="text-emerald-500/90 font-medium">Criptografado</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col justify-between h-full py-1">
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center text-xs py-1 border-b border-border/30">
+                      <span className="text-muted-foreground">Escopo de Rede</span>
+                      <span className="font-medium text-xs text-foreground">Acesso Local Apenas</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs py-1">
+                      <span className="text-muted-foreground">Acesso Remoto</span>
+                      <span className="text-xs text-muted-foreground">Não configurado</span>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground/70 leading-snug">
+                    Container operando isolado na LAN do host.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
