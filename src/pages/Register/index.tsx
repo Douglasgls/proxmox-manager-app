@@ -10,6 +10,7 @@ import { UserPlus, Loader2, AlertCircle, CheckCircle2, ArrowRight } from 'lucide
 import { Link, useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/utils/constants';
 import { extractErrorMessage } from '@/utils/error';
+import { useToastStore } from '@/utils/clipboard';
 
 export const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ export const Register: React.FC = () => {
   const {
     register,
     handleSubmit,
+    setError: setFormError,
     formState: { errors, isSubmitting },
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
@@ -34,8 +36,8 @@ export const Register: React.FC = () => {
     setError(null);
     try {
       await userApi.registerUser({
-        username: data.username,
-        email: data.email,
+        username: data.username.trim(),
+        email: data.email.trim(),
         password: data.password,
         role: 'admin',
       });
@@ -43,6 +45,20 @@ export const Register: React.FC = () => {
     } catch (err: any) {
       const errorMessage = extractErrorMessage(err, 'Erro ao realizar cadastro');
       setError(errorMessage);
+      useToastStore.getState().showToast(errorMessage, 'error');
+
+      const lower = errorMessage.toLowerCase();
+      if (lower.includes('usuário') || lower.includes('username')) {
+        setFormError('username', {
+          type: 'manual',
+          message: errorMessage,
+        });
+      } else if (lower.includes('email') || lower.includes('e-mail')) {
+        setFormError('email', {
+          type: 'manual',
+          message: errorMessage,
+        });
+      }
     }
   };
 
@@ -104,7 +120,7 @@ export const Register: React.FC = () => {
             {error && (
               <div className="flex items-center gap-2 p-3 text-sm text-destructive rounded-lg bg-destructive/10 border border-destructive/20 animate-in fade-in duration-200">
                 <AlertCircle className="size-4 shrink-0" />
-                <span>{error}</span>
+                <span className="font-medium">{error}</span>
               </div>
             )}
 
