@@ -53,11 +53,13 @@ export const ContainerDetailsPage: React.FC = () => {
     refetch: refetchInventory,
   } = useContainerInventoryById(id);
 
-  const { data: tokens } = useAccessTokens(id);
-  const activeTokens = tokens?.filter((t) => t.active) ?? [];
-  const activeTokensCount = inventory?.active_tokens_count ?? activeTokens.length;
+  const containerDbId = inventory?.id || id;
+  const { data: tokens } = useAccessTokens(containerDbId);
+  const now = new Date();
+  const activeTokens = tokens?.filter((t) => t.active && (!t.expires_at || new Date(t.expires_at) > now)) ?? [];
+  const activeTokensCount = tokens !== undefined ? activeTokens.length : (inventory?.active_tokens_count ?? 0);
   const tailscaleIp = inventory?.tailscale_ip || null;
-  const hasRemoteAccess = Boolean(tailscaleIp || (tokens && tokens.length > 0));
+  const hasRemoteAccess = Boolean(tailscaleIp || (tokens && tokens.length > 0) || (inventory?.active_tokens_count ?? 0) > 0);
 
   const {
     data: metrics,

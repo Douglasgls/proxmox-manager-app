@@ -26,6 +26,7 @@ export const useCreateAccessToken = () => {
     onSuccess: (_, variables) => {
       const containerId = typeof variables === 'string' ? variables : variables.containerId;
       queryClient.invalidateQueries({ queryKey: ['access-tokens', containerId] });
+      queryClient.invalidateQueries({ queryKey: ['containers'] });
     },
   });
 };
@@ -38,6 +39,7 @@ export const useRevokeAccessToken = () => {
       accessTokenApi.revoke(tokenId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['access-tokens', variables.containerId] });
+      queryClient.invalidateQueries({ queryKey: ['containers'] });
     },
   });
 };
