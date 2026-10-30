@@ -18,14 +18,12 @@ interface AccessSetupButtonProps {
   containerId: string | number;
   disabled?: boolean;
   isRunning?: boolean;
-  tailscaleIp?: string | null;
 }
 
 export const AccessSetupButton: React.FC<AccessSetupButtonProps> = ({
   containerId,
   disabled,
   isRunning = true,
-  tailscaleIp,
 }) => {
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
@@ -198,7 +196,6 @@ export const AccessSetupButton: React.FC<AccessSetupButtonProps> = ({
           onClose={() => setNewTokenData(null)}
           token={newTokenData.token}
           expiresAt={newTokenData.expiresAt}
-          tailscaleIp={tailscaleIp}
         />
       )}
 
@@ -206,7 +203,6 @@ export const AccessSetupButton: React.FC<AccessSetupButtonProps> = ({
         isOpen={isManagementOpen}
         onClose={() => setIsManagementOpen(false)}
         containerId={containerIdStr}
-        tailscaleIp={tailscaleIp}
       />
     </>
   );

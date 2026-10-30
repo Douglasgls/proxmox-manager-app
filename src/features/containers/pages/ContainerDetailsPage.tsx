@@ -168,7 +168,6 @@ export const ContainerDetailsPage: React.FC = () => {
             containerId={inventory.id} 
             disabled={isLocked || isAnyActionPending} 
             isRunning={isRunning}
-            tailscaleIp={tailscaleIp}
           />
           <Button
             variant="outline"

@@ -23,14 +23,12 @@ interface AccessManagementDialogProps {
   isOpen: boolean;
   onClose: () => void;
   containerId: string;
-  tailscaleIp?: string | null;
 }
 
 export const AccessManagementDialog: React.FC<AccessManagementDialogProps> = ({
   isOpen,
   onClose,
   containerId,
-  tailscaleIp,
 }) => {
   const [activeTab, setActiveTab] = useState<'tokens' | 'connections'>('tokens');
 
@@ -212,7 +210,6 @@ export const AccessManagementDialog: React.FC<AccessManagementDialogProps> = ({
           onClose={() => setNewTokenData(null)}
           token={newTokenData.token}
           expiresAt={newTokenData.expiresAt}
-          tailscaleIp={tailscaleIp}
         />
       )}
     </>
