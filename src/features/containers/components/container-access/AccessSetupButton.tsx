@@ -1,12 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, ShieldCheck, Key } from 'lucide-react';
+import { Loader2, ShieldCheck, Key, CloudOff } from 'lucide-react';
 import { useEnableRemoteAccess } from '../../hooks';
 import { JobProgressModal } from '../JobProgressModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCreateAccessToken, useAccessTokens } from '../../hooks';
 import { AccessTokenDialog } from './AccessTokenDialog';
 import { AccessManagementDialog } from './AccessManagementDialog';
+import { useCloudConnection } from '@/hooks/useCloudConnection';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface AccessSetupButtonProps {
   containerId: string | number;
@@ -29,13 +31,30 @@ export const AccessSetupButton: React.FC<AccessSetupButtonProps> = ({
   
   const containerIdStr = String(containerId);
   
+  // Status da conexão com a Cloud Control Plane
+  const { status: cloudStatus, isLoading: isCloudLoading } = useCloudConnection();
+  const isCloudRegistered = Boolean(cloudStatus?.registered);
+  const isCloudConnected = Boolean(cloudStatus?.connected);
+  const isCloudReady = isCloudRegistered && isCloudConnected;
+
   // Use tokens to know if remote access is already set up. 
-  // If we can fetch them successfully, it means the API is responding (even if empty).
-  // Alternatively, we could just show "Gerenciar acessos" if tokens.length > 0.
   const { data: tokens, isSuccess } = useAccessTokens(containerIdStr);
   const hasTokens = isSuccess && tokens && tokens.length > 0;
 
+  // Determina mensagem de bloqueio quando a cloud não estiver disponível
+  let cloudDisabledReason: string | null = null;
+  if (!isCloudLoading && !isCloudRegistered) {
+    cloudDisabledReason = 'A Cloud não está vinculada. Vincule o Agent à Cloud para permitir acesso remoto.';
+  } else if (!isCloudLoading && !isCloudConnected) {
+    cloudDisabledReason = 'A Cloud está desconectada. Restabeleça a conexão com a Cloud para permitir acesso remoto.';
+  } else if (isCloudLoading && !cloudStatus) {
+    cloudDisabledReason = 'Verificando conexão com a Cloud...';
+  }
+
+  const isPermitDisabled = disabled || enableMutation.isPending || createTokenMutation.isPending || !isCloudReady;
+
   const handleEnableAccess = async () => {
+    if (!isCloudReady) return;
     try {
       const response = await enableMutation.mutateAsync(containerId);
       setJobId(response.job_id);
@@ -68,23 +87,43 @@ export const AccessSetupButton: React.FC<AccessSetupButtonProps> = ({
     }
   }, [containerId, containerIdStr, queryClient, createTokenMutation]);
 
+  const renderPermitButton = () => {
+    const button = (
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={isPermitDisabled}
+        onClick={handleEnableAccess}
+        className="gap-2"
+      >
+        {enableMutation.isPending || createTokenMutation.isPending ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : !isCloudReady ? (
+          <CloudOff className="size-4 text-muted-foreground" />
+        ) : (
+          <ShieldCheck className="size-4" />
+        )}
+        Permitir acesso
+      </Button>
+    );
+
+    if (cloudDisabledReason) {
+      return (
+        <Tooltip content={cloudDisabledReason} side="top">
+          <span className="inline-block cursor-not-allowed">
+            {button}
+          </span>
+        </Tooltip>
+      );
+    }
+
+    return button;
+  };
+
   return (
     <>
       {!hasTokens ? (
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={disabled || enableMutation.isPending || createTokenMutation.isPending}
-          onClick={handleEnableAccess}
-          className="gap-2"
-        >
-          {(enableMutation.isPending || createTokenMutation.isPending) ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <ShieldCheck className="size-4" />
-          )}
-          Permitir acesso
-        </Button>
+        renderPermitButton()
       ) : (
         <Button
           variant="outline"
