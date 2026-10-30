@@ -7,6 +7,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCreateAccessToken, useAccessTokens } from '../../hooks';
 import { AccessTokenDialog } from './AccessTokenDialog';
 import { AccessManagementDialog } from './AccessManagementDialog';
+import { CreateTokenDialog } from './CreateTokenDialog';
+import type { CreateAccessTokenParams } from '@/api/modules/accessTokenApi';
 import { useCloudConnection } from '@/hooks/useCloudConnection';
 import { Tooltip } from '@/components/ui/tooltip';
 
@@ -22,6 +24,7 @@ export const AccessSetupButton: React.FC<AccessSetupButtonProps> = ({
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isManagementOpen, setIsManagementOpen] = useState(false);
   const [newTokenData, setNewTokenData] = useState<{ token: string; expiresAt: string } | null>(null);
   
@@ -69,23 +72,36 @@ export const AccessSetupButton: React.FC<AccessSetupButtonProps> = ({
     setJobId(null);
   };
 
-  const handleJobComplete = useCallback(async () => {
+  const handleJobComplete = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['containers', containerId] });
     queryClient.invalidateQueries({ queryKey: ['containers'] });
+    queryClient.invalidateQueries({ queryKey: ['access-tokens', containerIdStr] });
     
-    // Automatic token generation upon completion
+    // Pequeno intervalo para o usuário visualizar 100% concluído antes de transitar para a escolha do token
+    setTimeout(() => {
+      setIsJobModalOpen(false);
+      setJobId(null);
+      setIsCreateOpen(true);
+    }, 600);
+  }, [containerId, containerIdStr, queryClient]);
+
+  const handleConfirmCreate = async (params: CreateAccessTokenParams) => {
     try {
-      const response = await createTokenMutation.mutateAsync(containerIdStr);
+      const response = await createTokenMutation.mutateAsync({
+        containerId: containerIdStr,
+        params,
+      });
       if (response.token) {
+        setIsCreateOpen(false);
         setNewTokenData({
           token: response.token,
           expiresAt: response.expires_at,
         });
       }
     } catch (err) {
-      console.error('Failed to generate automatic token after job complete:', err);
+      console.error('Failed to generate token:', err);
     }
-  }, [containerId, containerIdStr, queryClient, createTokenMutation]);
+  };
 
   const renderPermitButton = () => {
     const button = (
@@ -148,6 +164,13 @@ export const AccessSetupButton: React.FC<AccessSetupButtonProps> = ({
           icon={<ShieldCheck className="size-4 text-primary" />}
         />
       )}
+
+      <CreateTokenDialog
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onConfirm={handleConfirmCreate}
+        isLoading={createTokenMutation.isPending}
+      />
 
       {newTokenData && (
         <AccessTokenDialog
