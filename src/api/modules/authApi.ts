@@ -25,7 +25,6 @@ export const authApi = {
     return response.data;
   },
 
-  // TODO: Rever porque não funciona ainda
   refreshToken: async (refresh_token: string): Promise<LoginResponseData> => {
     const response = await apiClient.post<LoginResponseData>('/auth/refresh', { refresh_token });
     return response.data;

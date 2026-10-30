@@ -16,7 +16,7 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, token, isAuthenticated, setAuth, clearAuth, updateUser } = useAuthStore();
+  const { user, token, refreshToken, expiresIn, isAuthenticated, setAuth, clearAuth, updateUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
 
   // Validação da sessão ao inicializar o app
@@ -43,6 +43,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initAuth();
   }, [token, clearAuth, updateUser]);
+
+  // Renovação periódica do token em background antes de expirar
+  useEffect(() => {
+    if (!token || !refreshToken) return;
+
+    // Se expiresIn for 900s (15 min), renova 60s antes (14 min)
+    const refreshDelay = expiresIn
+      ? Math.max((expiresIn - 60) * 1000, 30000)
+      : 14 * 60 * 1000;
+
+    const timer = setTimeout(async () => {
+      try {
+        const response = await authApi.refreshToken(refreshToken);
+        const data = (response as any).data || response;
+        if (data?.access_token) {
+          setAuth(
+            data.access_token,
+            data.refresh_token,
+            data.expires_in,
+            data.token_type
+          );
+        }
+      } catch (err) {
+        console.warn('[Auth] Falha no refresh proativo do token:', err);
+      }
+    }, refreshDelay);
+
+    return () => clearTimeout(timer);
+  }, [token, refreshToken, expiresIn, setAuth]);
 
   const login = async (email: string, password?: string, rememberMe: boolean = false) => {
     try {

@@ -5,7 +5,9 @@ import { useProxmoxErrorStore } from '@/stores/proxmoxErrorStore';
 import { useToastStore } from '@/utils/clipboard';
 
 // URL base obtida do arquivo .env ou padrão
-const BASE_URL = import.meta.env.VITE_API_URL;
+const rawBaseUrl = import.meta.env.VITE_API_URL;
+const BASE_URL = rawBaseUrl ? rawBaseUrl.replace(/\/+$/, '') : '/api';
+const REFRESH_URL = `${BASE_URL}/auth/refresh`;
 
 // Variáveis de controle para o refresh token
 let isRefreshing = false;
@@ -154,7 +156,7 @@ apiClient.interceptors.response.use(
 
     try {
       // Faz requisição para atualizar o token. Nota: usamos a instância padrão do axios para não acionar interceptores
-      const response = await axios.post(`${BASE_URL}auth/refresh`, {
+      const response = await axios.post(REFRESH_URL, {
         refresh_token: refreshToken,
       });
 

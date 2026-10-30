@@ -99,7 +99,7 @@ export const useAuthStore = create<AuthStateStore>()(
 
       updateUser: (updatedUser) =>
         set((state) => ({
-          user: state.user ? { ...state.user, ...updatedUser } : null,
+          user: state.user ? { ...state.user, ...updatedUser } : (updatedUser as User),
         })),
 
       clearAuth: () => {
