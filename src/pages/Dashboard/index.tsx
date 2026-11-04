@@ -245,7 +245,7 @@ export const Dashboard: React.FC = () => {
     : [0, 0, 0];
 
   return (
-    <div className="space-y-4 max-w-[1320px] mx-auto text-foreground">
+    <div className="space-y-4 w-full text-foreground">
       {/* 1. CABEÇALHO DA PÁGINA */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -810,16 +810,6 @@ export const Dashboard: React.FC = () => {
           </div>
         </section>
       </div>
-
-      {/* Botão Flutuante de Ajuda (?) */}
-      <button
-        type="button"
-        className="fixed bottom-4 right-4 size-8 rounded-full border border-white/10 bg-[#171717] hover:bg-white/10 text-white/50 hover:text-white flex items-center justify-center text-xs font-mono transition-colors shadow-lg z-40 focus:outline-none"
-        title="Ajuda e Documentação"
-        onClick={() => window.open('https://pve.proxmox.com/pve-docs/', '_blank')}
-      >
-        ?
-      </button>
     </div>
   );
 };

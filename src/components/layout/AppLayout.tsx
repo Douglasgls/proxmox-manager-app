@@ -39,8 +39,8 @@ export const AppLayout: React.FC = () => {
         <Header />
 
         {/* Content Body */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 bg-[#101010]">
-          <div className="mx-auto max-w-[1320px]">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#101010]">
+          <div className="w-full">
             <ProxmoxErrorBanner />
             <ErrorBoundary>
               <Outlet />
