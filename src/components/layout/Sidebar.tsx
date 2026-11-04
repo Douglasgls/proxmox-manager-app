@@ -12,8 +12,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Server,
-  HardDrive,
-  Network,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 
@@ -30,10 +28,8 @@ export const Sidebar: React.FC = () => {
 
   const mainLinks: SidebarLink[] = [
     { label: 'Visão geral', path: ROUTES.DASHBOARD, icon: LayoutGrid },
+    { label: 'Containers', path: ROUTES.CONTAINERS, icon: Box },
     { label: 'Nós', path: ROUTES.MONITORING, icon: Server },
-    { label: 'VMs e containers', path: ROUTES.CONTAINERS, icon: Box },
-    { label: 'Armazenamento', path: '/app/inventory?tab=storages', icon: HardDrive },
-    { label: 'Rede', path: '/app/inventory?tab=networks', icon: Network },
     { label: 'Atividade do agente', path: ROUTES.JOBS, icon: Activity },
   ];
 
@@ -87,8 +83,8 @@ export const Sidebar: React.FC = () => {
           cn(
             'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors group relative',
             isActive
-              ? 'bg-muted text-foreground font-medium'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              ? 'bg-[#292929] text-white font-medium'
+              : 'text-white/60 hover:bg-white/5 hover:text-white'
           )
         }
       >
@@ -127,12 +123,12 @@ export const Sidebar: React.FC = () => {
   return (
     <aside
       className={cn(
-        'relative z-20 flex flex-col h-screen border-r border-border bg-card transition-all duration-300 ease-in-out',
+        'relative z-20 flex flex-col h-screen border-r border-white/8 bg-[#131313] transition-all duration-300 ease-in-out',
         isSidebarOpen ? 'w-64' : 'w-16'
       )}
     >
       {/* Header / Logo */}
-      <div className="flex h-16 items-center px-4 border-b border-border">
+      <div className="flex h-16 items-center px-4 border-b border-white/8">
         <NavLink
           to={ROUTES.DASHBOARD}
           className="flex items-center gap-2 overflow-hidden focus:outline-none"

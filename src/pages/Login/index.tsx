@@ -6,7 +6,7 @@ import type { LoginInput } from '@/utils/validation';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardDescription, CardContent } from '@/components/ui/card';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/utils/constants';
 import { extractErrorMessage } from '@/utils/error';
@@ -14,6 +14,7 @@ import { extractErrorMessage } from '@/utils/error';
 export const Login: React.FC = () => {
   const { login } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -88,13 +89,30 @@ export const Login: React.FC = () => {
             <label className="text-xs font-semibold text-muted-foreground uppercase" htmlFor="password">
               Senha
             </label>
-            <input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              {...register('password')}
-              className="w-full h-9 rounded-lg border border-border bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                {...register('password')}
+                className="w-full h-9 rounded-lg border border-border bg-background pl-3 pr-10 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded focus:outline-none"
+                title={showPassword ? 'Ocultar senha' : 'Ver senha'}
+              >
+                {showPassword ? (
+                  <EyeOff className="size-4" />
+                ) : (
+                  <Eye className="size-4" />
+                )}
+              </button>
+            </div>
+            {errors.password && (
+              <p className="text-xs text-destructive mt-0.5">{errors.password.message}</p>
+            )}
             {errors.root && (
               <p className="text-xs text-destructive mt-0.5">{errors.root.message}</p>
             )}

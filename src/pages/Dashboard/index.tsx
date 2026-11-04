@@ -1,10 +1,8 @@
 import React, { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import PageHeader from '@/components/common/PageHeader';
 import ErrorAlert from '@/components/common/Error';
 import Loading from '@/components/common/Loading';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { inventoryApi } from '@/api/modules/inventoryApi';
@@ -13,48 +11,28 @@ import { useDashboard } from '@/hooks/useDashboard';
 import { useDashboardStore } from '@/stores/dashboardStore';
 import { useDashboardMetrics } from '@/hooks/websocket/useDashboardMetrics';
 import {
-  Activity, Clock,
-  ArrowDownToLine, ArrowUpFromLine, 
-  PlayCircle, StopCircle, 
-  PauseCircle, Box, 
-  Disc, FileCode2,
-  XCircle, Network,
-  Database, CheckCircle2,
-  ShieldAlert, KeyRound, Settings, RefreshCw,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Disc,
+  FileCode2,
+  Network,
+  Database,
+  ExternalLink,
+  ShieldAlert,
+  KeyRound,
+  Settings,
+  RefreshCw,
 } from 'lucide-react';
 
-// Função auxiliar para formatar o Uptime
-const formatUptime = (totalSeconds: number) => {
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  return `${days}d ${hours}h ${minutes}m`;
-};
-
-// Componente visual para as Barras de Progresso de Métricas
-const MetricBar: React.FC<{ label: string; percent: number; valueText: string; colorClass?: string }> = ({ 
-  label, 
-  percent, 
-  valueText, 
-  colorClass = "bg-[#F47732]" 
-}) => {
-  // Garante que a barra não passe de 100% visualmente
-  const safePercent = Math.min(Math.max(percent, 0), 100);
-  
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex justify-between text-sm">
-        <span className="font-medium text-foreground">{label}</span>
-        <span className="text-muted-foreground">{valueText} ({safePercent.toFixed(1)}%)</span>
-      </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-        <div 
-          className={`h-full transition-all duration-500 ease-in-out ${colorClass}`} 
-          style={{ width: `${safePercent}%` }} 
-        />
-      </div>
-    </div>
-  );
+// Regra de cores do medidor conforme a auditoria de design
+const getMeterTone = (percent: number) => {
+  if (percent >= 90) {
+    return { bar: 'bg-red-400', text: 'text-red-300' };
+  }
+  if (percent >= 75) {
+    return { bar: 'bg-amber-400', text: 'text-amber-300' };
+  }
+  return { bar: 'bg-[#F47732]', text: 'text-white' };
 };
 
 export const Dashboard: React.FC = () => {
@@ -71,7 +49,7 @@ export const Dashboard: React.FC = () => {
   } = useQuery({
     queryKey: ['host', 'inventory'],
     queryFn: inventoryApi.getHost,
-    staleTime: Infinity, 
+    staleTime: Infinity,
   });
 
   const { data: storages } = useQuery({
@@ -80,20 +58,21 @@ export const Dashboard: React.FC = () => {
   });
 
   const { data: networks } = useQuery({
-    queryKey: ["networks"],
+    queryKey: ['networks'],
     queryFn: inventoryApi.getNetworks,
   });
 
-  // Ordenação das Interfaces de Rede:
-  // 1º: Ativas com IP atribuído
-  // 2º: Ativas sem IP
-  // 3º: Inativas
+  // Ordenação das Interfaces de Rede
   const sortedInterfaces = useMemo(() => {
     if (!networks?.interfaces) return [];
 
     return [...networks.interfaces].sort((a, b) => {
       const getRank = (net: typeof a) => {
-        const hasIp = Boolean(net.address && net.address.trim() !== '' && net.address !== 'Não atribuído');
+        const hasIp = Boolean(
+          net.address &&
+            net.address.trim() !== '' &&
+            net.address !== 'Não atribuído'
+        );
         if (net.active && hasIp) return 1;
         if (net.active && !hasIp) return 2;
         return 3;
@@ -138,8 +117,12 @@ export const Dashboard: React.FC = () => {
             </div>
             <div className="space-y-1.5 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-lg font-bold text-foreground">Permissão Insuficiente no Proxmox VE</h3>
-                <Badge variant="warning" className="text-xs">403 Forbidden</Badge>
+                <h3 className="text-lg font-bold text-foreground">
+                  Permissão Insuficiente no Proxmox VE
+                </h3>
+                <Badge variant="warning" className="text-xs">
+                  403 Forbidden
+                </Badge>
                 {errData?.required_permission && (
                   <Badge variant="outline" className="font-mono text-xs border-amber-500/40">
                     {errData.required_permission}
@@ -159,11 +142,25 @@ export const Dashboard: React.FC = () => {
               Como liberar essa permissão no Proxmox VE:
             </p>
             <ol className="list-decimal list-inside space-y-2 text-muted-foreground pl-1 text-xs">
-              <li>Acesse o Proxmox VE &gt; <strong>Datacenter</strong> &gt; aba <strong>Permissions</strong>.</li>
-              <li>Clique no botão <strong>Add</strong> &gt; selecione <strong>API Token Permission</strong> (ou <em>User Permission</em>).</li>
-              <li>Defina o campo <strong>Path</strong> como <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-foreground font-semibold">{errData?.path || '/nodes/pve'}</code> (ou <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-foreground font-semibold">/</code>).</li>
-              <li>Atribua a Role <strong className="text-foreground font-semibold">PVEAuditor</strong> (ou <em>Administrator</em>) ao token.</li>
-              <li>Marque a opção <strong>Propagate</strong> (Propagar) e clique em <strong>Add</strong>.</li>
+              <li>
+                Acesse o Proxmox VE &gt; <strong>Datacenter</strong> &gt; aba <strong>Permissions</strong>.
+              </li>
+              <li>
+                Clique no botão <strong>Add</strong> &gt; selecione <strong>API Token Permission</strong> (ou <em>User Permission</em>).
+              </li>
+              <li>
+                Defina o campo <strong>Path</strong> como{' '}
+                <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-foreground font-semibold">
+                  {errData?.path || '/nodes/pve'}
+                </code>{' '}
+                (ou <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-foreground font-semibold">/</code>).
+              </li>
+              <li>
+                Atribua a Role <strong className="text-foreground font-semibold">PVEAuditor</strong> (ou <em>Administrator</em>) ao token.
+              </li>
+              <li>
+                Marque a opção <strong>Propagate</strong> (Propagar) e clique em <strong>Add</strong>.
+              </li>
             </ol>
             <p className="text-[11px] text-muted-foreground pt-2 border-t border-border/50">
               * Dica: Se o seu API Token foi criado com a opção <em>Privilege Separation</em> ativada, a permissão deve ser concedida especificamente para o Token para surtir efeito.
@@ -184,339 +181,645 @@ export const Dashboard: React.FC = () => {
       );
     }
 
-    return <ErrorAlert title="Não foi possível carregar os dados" onRetry={() => { refetchHost(); }} />;
+    return (
+      <ErrorAlert
+        title="Não foi possível carregar os dados"
+        onRetry={() => {
+          refetchHost();
+        }}
+      />
+    );
   }
 
-  const ramPercent = host.memory_total_bytes > 0 ? (metrics.memory_used_bytes / host.memory_total_bytes) * 100 : 0;
-  const swapPercent = host.swap_total_bytes > 0 ? (metrics.swap_used_bytes / host.swap_total_bytes) * 100 : 0;
-  
-  const diskTotal = metrics.disk_used_bytes + metrics.disk_free_bytes;
-  const diskPercent = diskTotal > 0 ? (metrics.disk_used_bytes / diskTotal) * 100 : 0;
+  // Resolução segura de metadados do host para evitar erros com campos indefinidos
+  const nodeName = (host?.hostname || (host as any)?.node || 'PVE').toUpperCase();
+  const cpuModel = host?.cpu_model || 'Processador';
+  const cpuCores = host?.cpu_cores ?? 0;
+  const cpuThreads = host?.cpu_threads ?? 0;
+  const memoryTotal = host?.memory_total_bytes ?? 0;
+  const swapTotal = host?.swap_total_bytes ?? 0;
+  const kernelVersion = host?.kernel_version
+    ? host.kernel_version.split(' ')[1] || host.kernel_version
+    : '--';
+  const architecture = host?.architecture ?? 'amd64';
+  const proxmoxVersion = host?.proxmox_version
+    ? host.proxmox_version.split('/')[1] || host.proxmox_version
+    : '--';
+
+  // Cálculos de Percentual de Recursos
+  const cpuPercent = Math.min(Math.max(metrics?.cpu_usage_percent || 0, 0), 100);
+  const ramPercent =
+    memoryTotal > 0
+      ? Math.min(Math.max(((metrics?.memory_used_bytes || 0) / memoryTotal) * 100, 0), 100)
+      : 0;
+  const swapPercent =
+    swapTotal > 0
+      ? Math.min(Math.max(((metrics?.swap_used_bytes || 0) / swapTotal) * 100, 0), 100)
+      : 0;
+  const diskTotal = (metrics?.disk_used_bytes || 0) + (metrics?.disk_free_bytes || 0);
+  const diskPercent =
+    diskTotal > 0
+      ? Math.min(Math.max(((metrics?.disk_used_bytes || 0) / diskTotal) * 100, 0), 100)
+      : 0;
+
+  // Cores dinâmicas para métricas
+  const cpuTone = getMeterTone(cpuPercent);
+  const ramTone = getMeterTone(ramPercent);
+  const swapTone = getMeterTone(swapPercent);
+  const diskTone = getMeterTone(diskPercent);
+
+  // Proporção de containers LXC
+  const totalContainers = host?.containers_total || 0;
+  const runningRatio = totalContainers > 0 ? ((host?.containers_running || 0) / totalContainers) * 100 : 0;
+  const stoppedRatio = totalContainers > 0 ? ((host?.containers_stopped || 0) / totalContainers) * 100 : 0;
+  const suspendedRatio = totalContainers > 0 ? ((host?.containers_suspended || 0) / totalContainers) * 100 : 0;
+
+  // IP primário para acesso ao Proxmox
+  const primaryIp =
+    networks?.interfaces?.find(
+      (n) => n.address && n.address !== '127.0.0.1' && n.address !== 'Não atribuído'
+    )?.address || '127.0.0.1';
+
+  const loadAvg = Array.isArray(metrics?.load_average)
+    ? metrics.load_average
+    : [0, 0, 0];
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Host / Overview"
-        description={`Visão geral e monitoramento do nó ${host.hostname.toUpperCase()}.`}
-      />
+    <div className="space-y-4 max-w-[1320px] mx-auto text-foreground">
+      {/* 1. CABEÇALHO DA PÁGINA */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-white/50">
+            Nó {nodeName}
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-white mt-0.5">
+            Visão geral do host
+          </h1>
+          <p className="text-sm text-white/50 mt-1">
+            Visão geral e monitoramento do nó {nodeName}.
+          </p>
+        </div>
 
-      {/* PARA MAIS DADOS */}
-      <div className="mb-6 flex items-center gap-2 rounded-lg border border-border bg-muted/20 px-4 py-3 text-sm">
-        <span className="font-medium text-muted-foreground">Para mais dados acesse:</span>
-        
-        <div className="flex flex-wrap gap-3">
-          {networks?.interfaces
-            ?.filter((network) => network.address && network.address !== '127.0.0.1')
-            .map((network, index) => (
-              <a
-                key={index}
-                href={`https://${network.address}:8006`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-mono text-primary hover:underline hover:text-primary/80 transition-colors"
-              >
-                https://{network.address}:8006
-              </a>
-            ))}
-            
-            {!networks && <span className="text-muted-foreground animate-pulse">Carregando IPs...</span>}
+        {/* Link Externo Proxmox VE */}
+        <a
+          href={`https://${primaryIp}:8006`}
+          target="_blank"
+          rel="noreferrer"
+          className="group flex items-center gap-3.5 px-4 py-2.5 rounded-xl border border-white/10 bg-[#171717] hover:border-[#F47732]/50 transition-colors shadow-sm"
+        >
+          <div className="flex flex-col text-right">
+            <span className="text-[10px] uppercase font-mono tracking-wider text-white/40">
+              Para mais dados acesse
+            </span>
+            <span className="text-xs font-mono font-medium text-white group-hover:text-[#F47732] transition-colors">
+              https://{primaryIp}:8006
+            </span>
+          </div>
+          <ExternalLink className="size-4 text-white/40 group-hover:text-[#F47732] transition-colors" />
+        </a>
+      </div>
+
+      {/* 2. FAIXA DO HOST (Hardware e Versões) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[1.7fr_1fr_1fr_0.9fr] gap-px rounded-xl overflow-hidden border border-white/8 bg-white/8 shadow-sm">
+        {/* Processador */}
+        <div className="bg-[#171717] px-5 py-4 min-w-0 flex flex-col justify-between col-span-2 sm:col-span-3 lg:col-span-1">
+          <span className="text-[10px] uppercase font-mono tracking-wider text-white/40 block mb-1">
+            Processador
+          </span>
+          <p
+            className="text-sm font-medium text-white truncate"
+            title={cpuModel}
+          >
+            {cpuModel}
+          </p>
+          <p className="text-xs text-white/45 mt-1 font-mono">
+            {cpuCores} Cores / {cpuThreads} Threads
+          </p>
+        </div>
+
+        {/* Memória Física */}
+        <div className="bg-[#171717] px-5 py-4 min-w-0 flex flex-col justify-between">
+          <span className="text-[10px] uppercase font-mono tracking-wider text-white/40 block mb-1">
+            Memória Física
+          </span>
+          <p className="text-sm font-medium text-white font-mono">
+            {formatBytes(memoryTotal)} RAM
+          </p>
+          <p className="text-xs text-white/45 mt-1 font-mono">
+            {formatBytes(swapTotal)} Swap
+          </p>
+        </div>
+
+        {/* Kernel Linux */}
+        <div className="bg-[#171717] px-5 py-4 min-w-0 flex flex-col justify-between">
+          <span className="text-[10px] uppercase font-mono tracking-wider text-white/40 block mb-1">
+            Kernel Linux
+          </span>
+          <p
+            className="text-sm font-medium text-white truncate font-mono"
+            title={kernelVersion}
+          >
+            {kernelVersion}
+          </p>
+          <p className="text-xs text-white/45 mt-1 font-mono">
+            {architecture}
+          </p>
+        </div>
+
+        {/* Proxmox VE */}
+        <div className="bg-[#171717] px-5 py-4 min-w-0 flex flex-col justify-between">
+          <span className="text-[10px] uppercase font-mono tracking-wider text-white/40 block mb-1">
+            Proxmox VE
+          </span>
+          <p
+            className="text-sm font-medium text-white truncate font-mono"
+            title={proxmoxVersion}
+          >
+            {proxmoxVersion}
+          </p>
+          <p className="text-xs text-white/45 mt-1">Versão do Manager</p>
         </div>
       </div>
 
-      {/* 1. SEÇÃO ESTÁTICA (Hardware e SO) */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Processador</p>
-            <p className="font-medium text-foreground" title={host.cpu_model}>{host.cpu_model}</p>
-            <p className="text-sm text-muted-foreground mt-1">{host.cpu_cores} Cores / {host.cpu_threads} Threads</p>
-          </CardContent>
-        </Card>
+      {/* 3. LINHA 2: RECURSOS (7/12) E CONTÊINERES (5/12) */}
+      <div className="grid gap-4 xl:grid-cols-12 items-stretch">
+        {/* CARD: Uso de Recursos */}
+        <section className="xl:col-span-7 flex flex-col rounded-xl border border-white/10 bg-[#171717] h-full shadow-sm">
+          <div className="min-h-[52px] px-5 py-3 border-b border-white/8 flex flex-wrap items-center justify-between gap-4">
+            <h2 className="text-sm font-semibold tracking-wide text-white">
+              Uso de recursos
+            </h2>
+            <div className="flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-[#F47732] animate-pulse" />
+              <span className="text-[11px] font-mono text-white/40">Tempo real</span>
+            </div>
+          </div>
 
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Memória Física</p>
-            <p className="font-medium text-foreground">{formatBytes(host.memory_total_bytes)} RAM</p>
-            <p className="text-sm text-muted-foreground mt-1">{formatBytes(host.swap_total_bytes)} Swap</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Kernel Linux</p>
-            <p className="font-medium text-foreground truncate" title={host.kernel_version}>
-              {host.kernel_version.split(' ')[1] || host.kernel_version}
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">{host.architecture ?? 'amd64'}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Proxmox VE</p>
-            <p className="font-medium text-foreground truncate">{host.proxmox_version.split('/')[1] || host.proxmox_version}</p>
-            <p className="text-sm text-muted-foreground mt-1">Versão do Manager</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* 2. SEÇÃO DINÂMICA (Métricas e Inventário Lógico) */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        
-        {/* Gráficos em Barra das Métricas */}
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle>Métricas de Uso (Tempo Real)</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col gap-6 justify-center">
-            <MetricBar 
-              label="Uso de CPU" 
-              percent={metrics.cpu_usage_percent} 
-              valueText={`${metrics.cpu_usage_percent.toFixed(1)}%`}
-              colorClass={metrics.cpu_usage_percent > 85 ? "bg-destructive" : "bg-[#F47732]"}
-            />
-            <MetricBar 
-              label="Uso de RAM" 
-              percent={ramPercent} 
-              valueText={`${formatBytes(metrics.memory_used_bytes)} / ${formatBytes(host.memory_total_bytes)}`} 
-              colorClass={ramPercent > 85 ? "bg-destructive" : "bg-[#F47732]"}
-            />
-            <MetricBar 
-              label="Uso de Swap" 
-              percent={swapPercent} 
-              valueText={`${formatBytes(metrics.swap_used_bytes)} / ${formatBytes(host.swap_total_bytes)}`} 
-              colorClass="bg-amber-500"
-            />
-            <MetricBar 
-              label="Uso de Disco (Root)" 
-              percent={diskPercent} 
-              valueText={`${formatBytes(metrics.disk_used_bytes)} / ${formatBytes(diskTotal)}`} 
-              colorClass={diskPercent > 85 ? "bg-destructive" : "bg-[#F47732]"}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Rede, Load e Contêineres */}
-        <div className="flex flex-col gap-6">
-          {/* CARD DE REDE E SISTEMA */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Rede e Sistema</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4">
-              
-              <div className="flex flex-col gap-1 border-l-2 border-primary/50 pl-3">
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  <Clock className="size-3.5" /> Uptime
+          <div className="grid sm:grid-cols-2 gap-x-10 gap-y-7 p-5 flex-1 content-center">
+            {/* CPU */}
+            <div>
+              <div className="flex items-baseline justify-between text-xs">
+                <span className="uppercase font-medium text-white/70">CPU</span>
+                <span className={`text-2xl font-bold font-mono tabular-nums ${cpuTone.text}`}>
+                  {cpuPercent.toFixed(1)}
+                  <span className="text-sm font-normal text-white/40 ml-0.5">%</span>
                 </span>
-                <span className="font-semibold text-foreground">{formatUptime(metrics.uptime_seconds)}</span>
               </div>
-
-              <div className="flex flex-col gap-1 border-l-2 border-primary/50 pl-3">
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  <Activity className="size-3.5" /> Load Average
-                </span>
-                <span className="font-semibold text-foreground">{metrics.load_average.join(', ')}</span>
-              </div>
-
-              <div className="flex flex-col gap-1 border-l-2 border-emerald-500 pl-3 mt-2">
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  <ArrowDownToLine className="size-3.5 text-emerald-500" /> Tráfego (RX)
-                </span>
-                <span className="font-semibold text-foreground">{formatBytes(metrics.rx_bytes)}</span>
-              </div>
-
-              <div className="flex flex-col gap-1 border-l-2 border-primary pl-3 mt-2">
-                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  <ArrowUpFromLine className="size-3.5 text-primary" /> Tráfego (TX)
-                </span>
-                <span className="font-semibold text-foreground">{formatBytes(metrics.tx_bytes)}</span>
-              </div>
-
-            </CardContent>
-          </Card>
-
-          {/* CARD DE CONTÊINERES (LXC) */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Inventário de Contêineres (LXC)</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              
-              {/* Total */}
-              <div className="flex flex-col rounded-lg border border-border bg-muted/40 p-3">
-                <span className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-medium">Total</span>
-                <div className="flex items-center gap-2 font-bold text-lg text-foreground mt-auto">
-                  <Box className="size-4 text-primary" />
-                  {host.containers_total}
-                </div>
-              </div>
-
-              {/* Em Execução (Verde) */}
-              <div className="flex flex-col rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
-                <span className="text-xs text-emerald-700 dark:text-emerald-400 mb-1 uppercase tracking-wider font-medium">Em Execução</span>
-                <div className="flex items-center gap-2 font-bold text-lg text-emerald-700 dark:text-emerald-400 mt-auto">
-                  <PlayCircle className="size-4" />
-                  {host.containers_running}
-                </div>
-              </div>
-
-              {/* Parados (Vermelho) */}
-              <div className="flex flex-col rounded-lg border border-destructive/30 bg-destructive/10 p-3">
-                <span className="text-xs text-destructive mb-1 uppercase tracking-wider font-medium">Parados</span>
-                <div className="flex items-center gap-2 font-bold text-lg text-destructive mt-auto">
-                  <StopCircle className="size-4" />
-                  {host.containers_stopped}
-                </div>
-              </div>
-
-              {/* Suspensos (Laranja/Amarelo) */}
-              <div className="flex flex-col rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
-                <span className="text-xs text-amber-700 dark:text-amber-400 mb-1 uppercase tracking-wider font-medium">Suspensos</span>
-                <div className="flex items-center gap-2 font-bold text-lg text-amber-700 dark:text-amber-400 mt-auto">
-                  <PauseCircle className="size-4" />
-                  {host.containers_suspended}
-                </div>
-              </div>
-
-              {/* Templates (Azul Mudo) */}
-              <div className="flex flex-col rounded-lg border border-border bg-muted/20 p-3">
-                <span className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-medium">Templates</span>
-                <div className="flex items-center gap-2 font-bold text-lg text-foreground mt-auto">
-                  <FileCode2 className="size-4 text-muted-foreground" />
-                  {host.template_count}
-                </div>
-              </div>
-
-              {/* ISOs (Roxo/Neutro) */}
-              <div className="flex flex-col rounded-lg border border-border bg-muted/20 p-3">
-                <span className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-medium">Imagens ISO</span>
-                <div className="flex items-center gap-2 font-bold text-lg text-foreground mt-auto">
-                  <Disc className="size-4 text-muted-foreground" />
-                  {host.iso_count}
-                </div>
-              </div>
-
-            </CardContent>
-          </Card>
-        </div>
-
-      </div>
-
-      {/* SESSÃO STORAGE E NETWORK */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* === STORAGES === */}
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle>Armazenamento (Storages)</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            {storages?.map((storage) => (
               <div
-                key={storage.name}
-                className="flex flex-col rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:bg-muted/30 hover:shadow-md"
+                className="mt-2.5 h-2 w-full rounded-full bg-white/8 overflow-hidden"
+                role="progressbar"
+                aria-valuenow={cpuPercent}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Uso de CPU"
               >
-                {/* Cabeçalho do Card */}
-                <div className="mb-4 flex items-center justify-between border-b border-border/50 pb-3">
-                  <div className="flex items-center gap-2 text-foreground min-w-0">
-                    <Database className="size-4 shrink-0 text-primary" />
-                    <h3 className="font-semibold tracking-tight truncate">{storage.name}</h3>
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ease-out ${cpuTone.bar}`}
+                  style={{ width: cpuPercent > 0 ? `${Math.max(cpuPercent, 1.5)}%` : '0%' }}
+                />
+              </div>
+              <p className="mt-2 text-[11px] font-mono text-white/40">
+                {host.cpu_cores} cores / {host.cpu_threads} threads
+              </p>
+            </div>
+
+            {/* RAM */}
+            <div>
+              <div className="flex items-baseline justify-between text-xs">
+                <span className="uppercase font-medium text-white/70">RAM</span>
+                <span className={`text-2xl font-bold font-mono tabular-nums ${ramTone.text}`}>
+                  {ramPercent.toFixed(1)}
+                  <span className="text-sm font-normal text-white/40 ml-0.5">%</span>
+                </span>
+              </div>
+              <div
+                className="mt-2.5 h-2 w-full rounded-full bg-white/8 overflow-hidden"
+                role="progressbar"
+                aria-valuenow={ramPercent}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Uso de Memória RAM"
+              >
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ease-out ${ramTone.bar}`}
+                  style={{ width: ramPercent > 0 ? `${Math.max(ramPercent, 1.5)}%` : '0%' }}
+                />
+              </div>
+              <p className="mt-2 text-[11px] font-mono text-white/40">
+                {formatBytes(metrics.memory_used_bytes)} de {formatBytes(host.memory_total_bytes)}
+              </p>
+            </div>
+
+            {/* Swap */}
+            <div>
+              <div className="flex items-baseline justify-between text-xs">
+                <span className="uppercase font-medium text-white/70">Swap</span>
+                <span className={`text-2xl font-bold font-mono tabular-nums ${swapTone.text}`}>
+                  {swapPercent.toFixed(1)}
+                  <span className="text-sm font-normal text-white/40 ml-0.5">%</span>
+                </span>
+              </div>
+              <div
+                className="mt-2.5 h-2 w-full rounded-full bg-white/8 overflow-hidden"
+                role="progressbar"
+                aria-valuenow={swapPercent}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Uso de Swap"
+              >
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ease-out ${swapTone.bar}`}
+                  style={{ width: swapPercent > 0 ? `${Math.max(swapPercent, 1.5)}%` : '0%' }}
+                />
+              </div>
+              <p className="mt-2 text-[11px] font-mono text-white/40">
+                {formatBytes(metrics.swap_used_bytes)} de {formatBytes(host.swap_total_bytes)}
+              </p>
+            </div>
+
+            {/* Disco (Root) */}
+            <div>
+              <div className="flex items-baseline justify-between text-xs">
+                <span className="uppercase font-medium text-white/70">Disco (Root)</span>
+                <span className={`text-2xl font-bold font-mono tabular-nums ${diskTone.text}`}>
+                  {diskPercent.toFixed(1)}
+                  <span className="text-sm font-normal text-white/40 ml-0.5">%</span>
+                </span>
+              </div>
+              <div
+                className="mt-2.5 h-2 w-full rounded-full bg-white/8 overflow-hidden"
+                role="progressbar"
+                aria-valuenow={diskPercent}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Uso de Disco Root"
+              >
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ease-out ${diskTone.bar}`}
+                  style={{ width: diskPercent > 0 ? `${Math.max(diskPercent, 1.5)}%` : '0%' }}
+                />
+              </div>
+              <p className="mt-2 text-[11px] font-mono text-white/40">
+                {formatBytes(metrics.disk_used_bytes)} de {formatBytes(diskTotal)}
+              </p>
+            </div>
+          </div>
+
+          {/* Rodapé Load Average */}
+          <div className="border-t border-white/8 px-5 py-3.5 flex flex-wrap items-center gap-x-8 gap-y-2">
+            <span className="text-xs font-medium text-white/60">Load average</span>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-mono uppercase text-white/35">1 MIN</span>
+                <span className="font-mono text-xs font-medium text-white">
+                  {loadAvg[0] !== undefined ? loadAvg[0].toFixed(2) : '--'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-mono uppercase text-white/35">5 MIN</span>
+                <span className="font-mono text-xs font-medium text-white">
+                  {loadAvg[1] !== undefined ? loadAvg[1].toFixed(2) : '--'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-mono uppercase text-white/35">15 MIN</span>
+                <span className="font-mono text-xs font-medium text-white">
+                  {loadAvg[2] !== undefined ? loadAvg[2].toFixed(2) : '--'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CARD: Inventário de Contêineres (LXC) */}
+        <section className="xl:col-span-5 flex flex-col rounded-xl border border-white/10 bg-[#171717] h-full shadow-sm">
+          <div className="min-h-[52px] px-5 py-3 border-b border-white/8 flex items-center justify-between">
+            <h2 className="text-sm font-semibold tracking-wide text-white">
+              Inventário de contêineres (LXC)
+            </h2>
+          </div>
+
+          <div className="p-5 flex-1 flex flex-col justify-between">
+            {/* Total e Barra Proporcional */}
+            <div>
+              <div className="flex items-end gap-3">
+                <span className="text-5xl font-bold tracking-tight text-white leading-none font-mono">
+                  {totalContainers}
+                </span>
+                <span className="text-xs text-white/50 pb-1">
+                  {totalContainers === 1 ? 'contêiner no total' : 'contêineres no total'}
+                </span>
+              </div>
+
+              <div
+                className="mt-4 flex h-2 gap-0.5 rounded-full bg-white/8 overflow-hidden"
+                role="img"
+                aria-label={`Executando: ${host.containers_running}, Parados: ${host.containers_stopped}, Suspensos: ${host.containers_suspended}`}
+              >
+                {runningRatio > 0 && (
+                  <div
+                    className="h-full bg-emerald-400 transition-all duration-500"
+                    style={{ width: `${runningRatio}%` }}
+                    title={`Executando: ${host.containers_running}`}
+                  />
+                )}
+                {stoppedRatio > 0 && (
+                  <div
+                    className="h-full bg-red-400 transition-all duration-500"
+                    style={{ width: `${stoppedRatio}%` }}
+                    title={`Parados: ${host.containers_stopped}`}
+                  />
+                )}
+                {suspendedRatio > 0 && (
+                  <div
+                    className="h-full bg-amber-400 transition-all duration-500"
+                    style={{ width: `${suspendedRatio}%` }}
+                    title={`Suspensos: ${host.containers_suspended}`}
+                  />
+                )}
+              </div>
+
+              {/* Lista de Estados */}
+              <div className="divide-y divide-white/8 mt-4 text-[13px]">
+                {/* Em execução */}
+                <div className="py-2.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span
+                      className={`size-2 rounded-full ${
+                        host.containers_running > 0 ? 'bg-emerald-400' : 'bg-white/15'
+                      }`}
+                    />
+                    <span className="text-white/80">Em execução</span>
                   </div>
-                  
-                  {/* Badge de Status */}
-                  <div 
-                    className={`shrink-0 flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider border ${
-                      storage.active 
-                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
-                        : 'border-destructive/20 bg-destructive/10 text-destructive'
+                  <span
+                    className={`font-mono text-xs ${
+                      host.containers_running > 0
+                        ? 'text-emerald-400 font-semibold'
+                        : 'text-white/35'
                     }`}
                   >
-                    {storage.active ? (
-                      <><CheckCircle2 className="size-3" /> Ativo</>
-                    ) : (
-                      <><XCircle className="size-3" /> Inativo</>
-                    )}
-                  </div>
+                    {host.containers_running}
+                  </span>
                 </div>
 
-                {/* Informações (Layout Key-Value) */}
-                <div className="space-y-2.5 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Tipo</span>
-                    <span className="font-medium uppercase">{storage.storage_type}</span>
+                {/* Parados */}
+                <div className="py-2.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span
+                      className={`size-2 rounded-full ${
+                        host.containers_stopped > 0 ? 'bg-red-400' : 'bg-white/15'
+                      }`}
+                    />
+                    <span className="text-white/80">Parados</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Capacidade</span>
-                    <span className="font-medium">{formatBytes(storage.total_bytes || storage.total || 0)}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* === INTERFACES DE REDE === */}
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle>Interfaces de Rede</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            {sortedInterfaces.map((network) => (
-              <div
-                key={network.name}
-                className="flex flex-col rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:bg-muted/30 hover:shadow-md"
-              >
-                {/* Cabeçalho do Card */}
-                <div className="mb-4 flex items-center justify-between border-b border-border/50 pb-3">
-                  <div className="flex items-center gap-2 text-foreground min-w-0">
-                    <Network className="size-4 shrink-0 text-primary" />
-                    <h3 className="font-semibold tracking-tight truncate">{network.name}</h3>
-                  </div>
-
-                  {/* Badge de Status */}
-                  <div 
-                    className={`shrink-0 flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider border ${
-                      network.active 
-                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
-                        : 'border-destructive/20 bg-destructive/10 text-destructive'
+                  <span
+                    className={`font-mono text-xs ${
+                      host.containers_stopped > 0
+                        ? 'text-red-400 font-semibold'
+                        : 'text-white/35'
                     }`}
                   >
-                    {network.active ? (
-                      <><CheckCircle2 className="size-3" /> Ativa</>
-                    ) : (
-                      <><XCircle className="size-3" /> Inativa</>
-                    )}
-                  </div>
+                    {host.containers_stopped}
+                  </span>
                 </div>
 
-                {/* Informações (Layout Key-Value) */}
-                <div className="space-y-2.5 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Tipo</span>
-                    <span className="font-medium uppercase">{network.interface_type}</span>
+                {/* Suspensos */}
+                <div className="py-2.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span
+                      className={`size-2 rounded-full ${
+                        host.containers_suspended > 0 ? 'bg-amber-400' : 'bg-white/15'
+                      }`}
+                    />
+                    <span className="text-white/80">Suspensos</span>
                   </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">IP</span>
-                    <span className="font-mono text-xs font-medium text-foreground">{network.address ?? "Não atribuído"}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Máscara</span>
-                    <span className="font-mono text-xs text-muted-foreground">{network.netmask ?? "-"}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Gateway</span>
-                    <span className="font-mono text-xs text-muted-foreground">{network.gateway ?? "-"}</span>
-                  </div>
+                  <span
+                    className={`font-mono text-xs ${
+                      host.containers_suspended > 0
+                        ? 'text-amber-400 font-semibold'
+                        : 'text-white/35'
+                    }`}
+                  >
+                    {host.containers_suspended}
+                  </span>
                 </div>
               </div>
-            ))}
-          </CardContent>
-        </Card>
+            </div>
+          </div>
+
+          {/* Rodapé: Templates e Imagens ISO */}
+          <div className="grid grid-cols-2 border-t border-white/8">
+            <div className="px-5 py-3.5 flex items-center justify-between border-r border-white/8">
+              <div className="flex items-center gap-2 text-white/60">
+                <FileCode2 className="size-4 text-white/35" />
+                <span className="text-xs">Templates</span>
+              </div>
+              <span className="font-mono text-xs font-semibold text-white">
+                {host.template_count}
+              </span>
+            </div>
+
+            <div className="px-5 py-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-white/60">
+                <Disc className="size-4 text-white/35" />
+                <span className="text-xs">Imagens ISO</span>
+              </div>
+              <span className="font-mono text-xs font-semibold text-white">
+                {host.iso_count}
+              </span>
+            </div>
+          </div>
+        </section>
       </div>
 
+      {/* 4. LINHA 3: STORAGES (5/12) E INTERFACES (7/12) */}
+      <div className="grid gap-4 xl:grid-cols-12 items-start">
+        {/* CARD: Armazenamento (Storages) */}
+        <section className="xl:col-span-5 flex flex-col rounded-xl border border-white/10 bg-[#171717] shadow-sm overflow-hidden">
+          <div className="min-h-[52px] px-5 py-3 border-b border-white/8 flex items-center justify-between">
+            <h2 className="text-sm font-semibold tracking-wide text-white">
+              Armazenamento (Storages)
+            </h2>
+          </div>
+
+          {/* Cabeçalho da Tabela em Grid */}
+          <div className="hidden md:grid grid-cols-[1.4fr_1fr_1fr_84px] px-5 py-2.5 border-b border-white/8 text-[10px] uppercase font-mono tracking-wider text-white/40 bg-white/[0.02]">
+            <span>Storage</span>
+            <span>Tipo</span>
+            <span>Capacidade</span>
+            <span className="text-right">Estado</span>
+          </div>
+
+          {/* Linhas */}
+          <div className="divide-y divide-white/8">
+            {storages && storages.length > 0 ? (
+              storages.map((storage) => {
+                const totalBytes = storage.total_bytes || storage.total || 0;
+                return (
+                  <div
+                    key={storage.name || storage.storage}
+                    className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr_1fr_84px] items-center px-5 py-3.5 text-xs gap-y-2 md:gap-y-0 hover:bg-white/[0.02] transition-colors"
+                  >
+                    {/* Nome do Storage */}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Database className="size-3.5 text-[#F47732] shrink-0" />
+                      <span
+                        className="font-medium text-white truncate"
+                        title={storage.name || storage.storage}
+                      >
+                        {storage.name || storage.storage}
+                      </span>
+                    </div>
+
+                    {/* Tipo */}
+                    <div>
+                      <span className="inline-block rounded bg-white/8 px-1.5 py-0.5 font-mono text-[10px] text-white/70 uppercase">
+                        {storage.storage_type || storage.type}
+                      </span>
+                    </div>
+
+                    {/* Capacidade */}
+                    <div className="font-mono text-xs text-white tabular-nums">
+                      {formatBytes(totalBytes)}
+                    </div>
+
+                    {/* Estado */}
+                    <div className="flex md:justify-end">
+                      {storage.active ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-mono font-medium uppercase tracking-wider bg-emerald-400/10 text-emerald-300 border border-emerald-400/20">
+                          <span className="size-1.5 rounded-full bg-emerald-400" />
+                          ATIVO
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-mono font-medium uppercase tracking-wider bg-white/5 text-white/40 border border-white/10">
+                          <span className="size-1.5 rounded-full bg-white/30" />
+                          INATIVO
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="p-5 text-center text-xs text-white/40 font-mono">
+                Nenhum storage configurado.
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* CARD: Interfaces de Rede */}
+        <section className="xl:col-span-7 flex flex-col rounded-xl border border-white/10 bg-[#171717] shadow-sm overflow-hidden">
+          <div className="min-h-[52px] px-5 py-3 border-b border-white/8 flex flex-wrap items-center justify-between gap-4">
+            <h2 className="text-sm font-semibold tracking-wide text-white">
+              Interfaces de rede
+            </h2>
+            <div className="flex items-center gap-4 text-[11px] font-mono text-white/60">
+              <span className="flex items-center gap-1">
+                <ArrowDownToLine className="size-3 text-emerald-400" />
+                RX <strong className="font-normal text-white/80">{metrics?.rx_bytes && metrics.rx_bytes > 0 ? formatBytes(metrics.rx_bytes) : '—'}</strong>
+              </span>
+              <span className="flex items-center gap-1">
+                <ArrowUpFromLine className="size-3 text-[#F47732]" />
+                TX <strong className="font-normal text-white/80">{metrics?.tx_bytes && metrics.tx_bytes > 0 ? formatBytes(metrics.tx_bytes) : '—'}</strong>
+              </span>
+            </div>
+          </div>
+
+          {/* Cabeçalho da Tabela em Grid */}
+          <div className="hidden md:grid grid-cols-[1fr_0.8fr_1.3fr_0.6fr_1.2fr_72px] px-5 py-2.5 border-b border-white/8 text-[10px] uppercase font-mono tracking-wider text-white/40 bg-white/[0.02]">
+            <span>Interface</span>
+            <span>Tipo</span>
+            <span>IP</span>
+            <span>Máscara</span>
+            <span>Gateway</span>
+            <span className="text-right">Estado</span>
+          </div>
+
+          {/* Linhas */}
+          <div className="divide-y divide-white/8">
+            {sortedInterfaces && sortedInterfaces.length > 0 ? (
+              sortedInterfaces.map((network) => {
+                const name = network.name || network.iface || '';
+                const type = network.interface_type || network.type || '';
+                const ip = network.address && network.address !== 'Não atribuído' ? network.address : null;
+                const netmask = network.netmask || null;
+                const gateway = network.gateway || null;
+
+                return (
+                  <div
+                    key={name}
+                    className="grid grid-cols-1 md:grid-cols-[1fr_0.8fr_1.3fr_0.6fr_1.2fr_72px] items-center px-5 py-3.5 text-xs gap-y-2 md:gap-y-0 hover:bg-white/[0.02] transition-colors"
+                  >
+                    {/* Interface */}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Network className="size-3.5 text-[#F47732] shrink-0" />
+                      <span className="font-mono text-xs font-medium text-white truncate" title={name}>
+                        {name}
+                      </span>
+                    </div>
+
+                    {/* Tipo */}
+                    <div>
+                      <span className="inline-block rounded bg-white/8 px-1.5 py-0.5 font-mono text-[10px] text-white/70 uppercase">
+                        {type}
+                      </span>
+                    </div>
+
+                    {/* IP */}
+                    <div className="font-mono text-xs truncate">
+                      {ip ? (
+                        <span className="text-white">{ip}</span>
+                      ) : (
+                        <span className="text-white/40 font-sans">Não atribuído</span>
+                      )}
+                    </div>
+
+                    {/* Máscara */}
+                    <div className="font-mono text-xs text-white/70 truncate">
+                      {netmask || '—'}
+                    </div>
+
+                    {/* Gateway */}
+                    <div className="font-mono text-xs text-white/70 truncate">
+                      {gateway || '—'}
+                    </div>
+
+                    {/* Estado */}
+                    <div className="flex md:justify-end">
+                      {network.active ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-mono font-medium uppercase tracking-wider bg-emerald-400/10 text-emerald-300 border border-emerald-400/20">
+                          <span className="size-1.5 rounded-full bg-emerald-400" />
+                          ATIVA
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-mono font-medium uppercase tracking-wider bg-white/5 text-white/40 border border-white/10">
+                          <span className="size-1.5 rounded-full bg-white/30" />
+                          INATIVA
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="p-5 text-center text-xs text-white/40 font-mono">
+                Nenhuma interface encontrada.
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+
+      {/* Botão Flutuante de Ajuda (?) */}
+      <button
+        type="button"
+        className="fixed bottom-4 right-4 size-8 rounded-full border border-white/10 bg-[#171717] hover:bg-white/10 text-white/50 hover:text-white flex items-center justify-center text-xs font-mono transition-colors shadow-lg z-40 focus:outline-none"
+        title="Ajuda e Documentação"
+        onClick={() => window.open('https://pve.proxmox.com/pve-docs/', '_blank')}
+      >
+        ?
+      </button>
     </div>
   );
 };
