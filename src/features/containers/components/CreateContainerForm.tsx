@@ -131,12 +131,27 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
     if (templates.length > 0) {
       const defaultTemplate = agentConfig?.default_template;
       if (defaultTemplate) {
-        const found = templates.find(
-          (t) =>
-            t.filename === defaultTemplate ||
-            t.name === defaultTemplate ||
-            defaultTemplate.includes(t.filename)
-        );
+        const cleanDefault =
+          defaultTemplate.split('/').pop()?.trim().toLowerCase() || defaultTemplate.trim().toLowerCase();
+
+        const found = templates.find((t) => {
+          const tFilename = (t.filename || '').trim().toLowerCase();
+          const tName = (t.name || '').trim().toLowerCase();
+          const tVolId = (t.volume_id || '').trim().toLowerCase();
+          const tClean = (t.filename || t.name || '').split('/').pop()?.trim().toLowerCase();
+
+          return (
+            tFilename === defaultTemplate.toLowerCase() ||
+            tName === defaultTemplate.toLowerCase() ||
+            tVolId === defaultTemplate.toLowerCase() ||
+            tClean === cleanDefault ||
+            defaultTemplate.toLowerCase().includes(tFilename) ||
+            (tFilename && defaultTemplate.toLowerCase().includes(tFilename)) ||
+            (tClean && cleanDefault.includes(tClean)) ||
+            (cleanDefault && tClean?.includes(cleanDefault))
+          );
+        });
+
         if (found) {
           setImageName(found.filename);
           return;
@@ -147,7 +162,7 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
         setImageName(templates[0].filename);
       }
     }
-  }, [templates, agentConfig]);
+  }, [templates, agentConfig?.default_template]);
 
   const [cpu, setCpu] = useState(DEFAULT_CONTAINER_VALUES.cpu);
   const [memoryMb, setMemoryMb] = useState(DEFAULT_CONTAINER_VALUES.memory_mb);
@@ -367,11 +382,20 @@ export const CreateContainerForm: React.FC<CreateContainerFormProps> = ({
                   className={cn(inputClasses, 'cursor-pointer')}
                 >
                   <option value="">Selecione um template</option>
-                  {templates.map((t) => (
-                    <option key={t.filename} value={t.filename}>
-                      {t.name} ({formatBytes(t.size)})
-                    </option>
-                  ))}
+                  {templates.map((t) => {
+                    const cleanDefault = (agentConfig?.default_template || '').split('/').pop()?.trim().toLowerCase();
+                    const isDefault =
+                      Boolean(agentConfig?.default_template) &&
+                      (t.filename === agentConfig?.default_template ||
+                        t.name === agentConfig?.default_template ||
+                        (t.filename && agentConfig?.default_template?.includes(t.filename)) ||
+                        (cleanDefault && (t.filename || t.name).toLowerCase().includes(cleanDefault)));
+                    return (
+                      <option key={t.filename} value={t.filename}>
+                        {t.name} ({formatBytes(t.size)}){isDefault ? ' — (Padrão)' : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               )}
             </div>
