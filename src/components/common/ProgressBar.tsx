@@ -23,7 +23,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
 
   // Determina a cor com base no status ou variação (metric vs default)
-  let progressColor = 'bg-green-500 dark:bg-green-600';
+  let progressColor = variant === 'metric' ? 'bg-[#F47732]' : 'bg-green-500 dark:bg-green-600';
   if (status === 'error') {
     progressColor = 'bg-destructive';
   } else if (status === 'warning') {
@@ -35,6 +35,8 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       progressColor = 'bg-destructive';
     } else if (percentage >= 70) {
       progressColor = 'bg-yellow-500 dark:bg-yellow-600';
+    } else {
+      progressColor = 'bg-[#F47732]';
     }
   }
 

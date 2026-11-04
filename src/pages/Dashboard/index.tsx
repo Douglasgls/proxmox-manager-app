@@ -36,7 +36,7 @@ const MetricBar: React.FC<{ label: string; percent: number; valueText: string; c
   label, 
   percent, 
   valueText, 
-  colorClass = "bg-primary" 
+  colorClass = "bg-[#F47732]" 
 }) => {
   // Garante que a barra não passe de 100% visualmente
   const safePercent = Math.min(Math.max(percent, 0), 100);
@@ -273,13 +273,13 @@ export const Dashboard: React.FC = () => {
               label="Uso de CPU" 
               percent={metrics.cpu_usage_percent} 
               valueText={`${metrics.cpu_usage_percent.toFixed(1)}%`}
-              colorClass={metrics.cpu_usage_percent > 85 ? "bg-destructive" : "bg-primary"}
+              colorClass={metrics.cpu_usage_percent > 85 ? "bg-destructive" : "bg-[#F47732]"}
             />
             <MetricBar 
               label="Uso de RAM" 
               percent={ramPercent} 
               valueText={`${formatBytes(metrics.memory_used_bytes)} / ${formatBytes(host.memory_total_bytes)}`} 
-              colorClass={ramPercent > 85 ? "bg-destructive" : "bg-primary"}
+              colorClass={ramPercent > 85 ? "bg-destructive" : "bg-[#F47732]"}
             />
             <MetricBar 
               label="Uso de Swap" 
@@ -291,6 +291,7 @@ export const Dashboard: React.FC = () => {
               label="Uso de Disco (Root)" 
               percent={diskPercent} 
               valueText={`${formatBytes(metrics.disk_used_bytes)} / ${formatBytes(diskTotal)}`} 
+              colorClass={diskPercent > 85 ? "bg-destructive" : "bg-[#F47732]"}
             />
           </CardContent>
         </Card>

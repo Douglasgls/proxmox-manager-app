@@ -37,6 +37,15 @@ export const Header: React.FC = () => {
     staleTime: Infinity,
   });
 
+  // Atualiza o título da aba do navegador dinamicamente (ex: ProxManager — pve-lab)
+  useEffect(() => {
+    if (host?.hostname) {
+      document.title = `ProxManager — ${host.hostname}`;
+    } else {
+      document.title = 'ProxManager';
+    }
+  }, [host?.hostname]);
+
   // Busca as métricas (uptime) inicialmente para a store global
   const { data: apiMetrics } = useQuery({
     queryKey: ['host', 'metrics'],

@@ -6,7 +6,7 @@ import type { RegisterInput } from '@/utils/validation';
 import { userApi } from '@/api/modules/userApi';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { UserPlus, Loader2, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Loader2, AlertCircle, ArrowRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/utils/constants';
 import { extractErrorMessage } from '@/utils/error';
@@ -81,15 +81,18 @@ export const Register: React.FC = () => {
 
   return (
     <Card className="border-border/60 shadow-lg animate-in fade-in duration-300">
-      <CardHeader className="space-y-1 text-center">
-        <div className="flex justify-center mb-4">
-          <div className="rounded-full bg-primary/10 p-3 text-primary">
-            {isSuccess ? (
-              <CheckCircle2 className="size-8 text-green-500 animate-bounce" />
-            ) : (
-              <UserPlus className="size-8" />
-            )}
-          </div>
+      <CardHeader className="space-y-2 text-center">
+        <div className="flex justify-center mb-2">
+          <img
+            src="/logoPMTCC/proxmanager-logo-on-dark.svg"
+            alt="ProxManager"
+            className="h-10 w-auto hidden dark:block"
+          />
+          <img
+            src="/logoPMTCC/proxmanager-logo-on-light.svg"
+            alt="ProxManager"
+            className="h-10 w-auto dark:hidden"
+          />
         </div>
         <CardTitle className="text-2xl font-bold tracking-tight">
           {isSuccess ? 'Conta Criada com Sucesso!' : 'Criar Nova Conta'}

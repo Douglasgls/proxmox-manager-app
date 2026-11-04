@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import PageHeader from '@/components/common/PageHeader';
 import DataTable from '@/components/common/DataTable';
 import type { ColumnDefinition } from '@/components/common/DataTable';
@@ -9,7 +10,22 @@ import { Server, Database, Network } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export const Inventory: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'nodes' | 'storages' | 'networks'>('nodes');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') as 'nodes' | 'storages' | 'networks' | null;
+  const [activeTab, setActiveTab] = useState<'nodes' | 'storages' | 'networks'>(
+    tabParam && ['nodes', 'storages', 'networks'].includes(tabParam) ? tabParam : 'nodes'
+  );
+
+  useEffect(() => {
+    if (tabParam && ['nodes', 'storages', 'networks'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
+  const handleTabChange = (tab: 'nodes' | 'storages' | 'networks') => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
 
   // Mocks de dados
   const mockNodes: ProxmoxNode[] = [
@@ -121,7 +137,7 @@ export const Inventory: React.FC = () => {
         <Button
           variant={activeTab === 'nodes' ? 'default' : 'ghost'}
           size="sm"
-          onClick={() => setActiveTab('nodes')}
+          onClick={() => handleTabChange('nodes')}
           className="gap-2 rounded-b-none border-b-2 border-transparent data-[state=active]:border-primary"
           data-state={activeTab === 'nodes' ? 'active' : ''}
         >
@@ -131,7 +147,7 @@ export const Inventory: React.FC = () => {
         <Button
           variant={activeTab === 'storages' ? 'default' : 'ghost'}
           size="sm"
-          onClick={() => setActiveTab('storages')}
+          onClick={() => handleTabChange('storages')}
           className="gap-2 rounded-b-none border-b-2 border-transparent data-[state=active]:border-primary"
           data-state={activeTab === 'storages' ? 'active' : ''}
         >
@@ -141,7 +157,7 @@ export const Inventory: React.FC = () => {
         <Button
           variant={activeTab === 'networks' ? 'default' : 'ghost'}
           size="sm"
-          onClick={() => setActiveTab('networks')}
+          onClick={() => handleTabChange('networks')}
           className="gap-2 rounded-b-none border-b-2 border-transparent data-[state=active]:border-primary"
           data-state={activeTab === 'networks' ? 'active' : ''}
         >

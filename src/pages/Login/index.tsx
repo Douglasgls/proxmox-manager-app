@@ -5,8 +5,8 @@ import { loginSchema } from '@/utils/validation';
 import type { LoginInput } from '@/utils/validation';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Server, Loader2, AlertCircle } from 'lucide-react';
+import { Card, CardHeader, CardDescription, CardContent } from '@/components/ui/card';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/utils/constants';
 import { extractErrorMessage } from '@/utils/error';
@@ -42,13 +42,19 @@ export const Login: React.FC = () => {
 
   return (
     <Card className="border-border/60 shadow-lg">
-      <CardHeader className="space-y-1 text-center">
-        <div className="flex justify-center mb-4">
-          <div className="rounded-full bg-primary/10 p-3 text-primary">
-            <Server className="size-8" />
-          </div>
+      <CardHeader className="space-y-2 text-center">
+        <div className="flex justify-center mb-2">
+          <img
+            src="/logoPMTCC/proxmanager-logo-on-dark.svg"
+            alt="ProxManager"
+            className="h-10 w-auto hidden dark:block"
+          />
+          <img
+            src="/logoPMTCC/proxmanager-logo-on-light.svg"
+            alt="ProxManager"
+            className="h-10 w-auto dark:hidden"
+          />
         </div>
-        <CardTitle className="text-2xl font-bold tracking-tight">Proxmox Manager</CardTitle>
         <CardDescription>
           Acesse a plataforma de gerenciamento do TCC
         </CardDescription>

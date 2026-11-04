@@ -22,7 +22,7 @@ export const Monitoring: React.FC = () => {
   return (
     <div className="space-y-6 pb-8">
       <PageHeader
-        title="Monitoring"
+        title="Nós e Monitoramento"
         description="Monitoramento em tempo real do ambiente Cloud, conexões VPN e nós Headscale sincronizados."
       />
 
